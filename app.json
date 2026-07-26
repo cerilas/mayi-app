@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "my-aichatapp-mobile",
+    "name": "MYFizyo AI",
     "slug": "my-aichatapp-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,6 +8,8 @@
     "scheme": "myaichatappmobile",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.myfizyoterapi.app",
+      "buildNumber": "1.0.0",
       "icon": "./assets/expo.icon"
     },
     "android": {

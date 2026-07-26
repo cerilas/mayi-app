@@ -10,6 +10,7 @@ import { AppHeader } from '../../components/app-header';
 import { Skeleton } from '../../components/skeleton';
 import { useTheme } from '../../context/ThemeContext';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
 
 const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api' : 'http://localhost:3000/api';
 
@@ -36,6 +37,7 @@ export default function SettingsScreen() {
   const { user, token, logout } = useAuthStore();
   const { colors, themeId, themeColors, setTheme } = useTheme();
   const { assistantIcon, setAssistantIcon } = useSettingsStore();
+  const router = useRouter();
 
   const isAdmin = user?.role === 'admin';
   const isPatient = user?.role === 'patient';
@@ -587,15 +589,33 @@ export default function SettingsScreen() {
           </AccordionItem>
         </Animated.View>
 
+        {/* Legal Text Button */}
+        <TouchableOpacity 
+          onPress={() => router.push('/legal')}
+          className="bg-white rounded-2xl p-4 flex-row items-center shadow-sm border border-gray-100 active:bg-gray-50 mt-6"
+        >
+          <View className="w-10 h-10 bg-indigo-50 rounded-xl items-center justify-center mr-3">
+            <ShieldCheck color="#4f46e5" size={20} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-gray-900 font-bold text-base">Hakkında & Yasal Metinler</Text>
+            <Text className="text-gray-500 text-xs mt-0.5">Kullanım koşulları ve gizlilik</Text>
+          </View>
+          <ChevronRight color="#d1d5db" size={20} />
+        </TouchableOpacity>
+
         <TouchableOpacity 
           onPress={logout}
-          className="bg-white rounded-2xl p-4 flex-row items-center justify-center shadow-sm border border-red-100 active:bg-red-50 mt-6"
+          className="bg-white rounded-2xl p-4 flex-row items-center justify-center shadow-sm border border-red-100 active:bg-red-50 mt-4"
         >
           <LogOut color="#ef4444" size={20} />
           <Text className="text-red-500 font-bold text-base ml-2">Çıkış Yap</Text>
         </TouchableOpacity>
         
-        <Text className="text-center text-gray-400 text-[10px] mt-6 font-medium uppercase tracking-widest">Mayi App v1.0.0</Text>
+        <View className="mt-12 mb-4 items-center">
+          <Text className="text-center text-gray-400 text-[10px] font-medium uppercase tracking-widest">Mayi App v1.0.0</Text>
+          <Text className="text-center text-gray-300 text-[9px] font-medium uppercase tracking-widest mt-1">cerilas</Text>
+        </View>
 
       </ScrollView>
 

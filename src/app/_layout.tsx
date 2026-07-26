@@ -78,7 +78,7 @@ export default function RootLayout() {
     const inAuthGroup = segments[0] === '(tabs)';
     if (!token && inAuthGroup) {
       router.replace('/login');
-    } else if (token && !inAuthGroup) {
+    } else if (token && segments[0] === 'login') {
       router.replace('/(tabs)');
     }
   }, [token, isLoading, segments, router]);
