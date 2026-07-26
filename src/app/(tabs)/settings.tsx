@@ -245,7 +245,7 @@ export default function SettingsScreen() {
             <View className="flex-row items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
               <ShieldCheck color="#6b7280" size={14} />
               <Text className="text-xs font-bold text-gray-600 uppercase tracking-wider ml-2">
-                {user?.role === 'admin' ? 'Yönetici' : user?.role === 'physiotherapist' ? 'Fizyoterapist' : 'Hasta'}
+                {user?.role === 'admin' ? 'Yönetici' : user?.role === 'physiotherapist' ? 'Fizyoterapist' : user?.role === 'patient' ? 'Hasta' : 'Kullanıcı'}
               </Text>
             </View>
           </View>
@@ -612,7 +612,7 @@ export default function SettingsScreen() {
             <View className="flex-row gap-2 mb-6">
               {['user', 'physiotherapist', 'admin'].map(r => (
                 <TouchableOpacity key={r} onPress={() => setUserForm({...userForm, role: r})} className={`flex-1 py-2 rounded-lg border items-center ${userForm.role === r ? 'bg-indigo-50 border-indigo-500' : 'bg-white border-gray-200'}`}>
-                  <Text className={`text-[10px] font-bold uppercase ${userForm.role === r ? 'text-indigo-700' : 'text-gray-500'}`}>{r === 'user' ? 'Hasta' : r === 'physiotherapist' ? 'Fizyo' : 'Admin'}</Text>
+                  <Text className={`text-[10px] font-bold uppercase ${userForm.role === r ? 'text-indigo-700' : 'text-gray-500'}`}>{r === 'user' ? 'Kullanıcı' : r === 'physiotherapist' ? 'Fizyo' : 'Admin'}</Text>
                 </TouchableOpacity>
               ))}
             </View>

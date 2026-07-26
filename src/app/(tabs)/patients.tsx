@@ -55,6 +55,7 @@ export default function PatientsScreen() {
   const [rightsLoading, setRightsLoading] = useState(false);
 
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, string>>({});
+  const [admins, setAdmins] = useState<any[]>([]);
 
   const isAdmin = user?.role === 'admin';
   const isStaff = user?.role === 'admin' || user?.role === 'physiotherapist';
@@ -62,8 +63,20 @@ export default function PatientsScreen() {
   useEffect(() => {
     if (isStaff) {
       fetchPatients(1, search);
+      fetchAdmins();
     }
   }, [user]);
+
+  const fetchAdmins = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/admin/users`, { headers });
+      if (Array.isArray(res.data)) {
+        setAdmins(res.data.filter((u: any) => u.role === 'admin' || u.role === 'physiotherapist'));
+      }
+    } catch (e) {
+      console.warn('Admins fetch err:', e);
+    }
+  };
 
   // Debounced search
   useEffect(() => {
@@ -363,7 +376,7 @@ export default function PatientsScreen() {
       <AppHeader
         right={isAdmin ? (
           <TouchableOpacity 
-            onPress={() => { setEditingPatient(null); setForm(EMPTY_FORM); setShowForm(true); }}
+            onPress={() => { setEditingPatient(null); setForm({...EMPTY_FORM, responsibleAdminId: user?.role === 'physiotherapist' ? user.id : ""}); setShowForm(true); }}
             style={{ padding: 8 }}
             accessibilityLabel="Yeni hasta"
           >
@@ -499,11 +512,46 @@ export default function PatientsScreen() {
             <View className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mb-6">
               <Text className="text-xs font-black text-gray-400 uppercase tracking-wider mb-4">Klinik Profili</Text>
               
+              <Text className="text-sm font-bold text-gray-700 mb-1.5">Sorumlu (Fizyoterapist)</Text>
+              <View className="mb-5 flex-row flex-wrap gap-2">
+                <TouchableOpacity 
+                  onPress={() => isAdmin && setForm({...form, responsibleAdminId: ""})}
+                  disabled={!isAdmin}
+                  className={`px-4 py-2 rounded-full border ${form.responsibleAdminId === "" ? 'bg-indigo-600 border-indigo-600' : 'bg-[#f8fafc] border-gray-200'}`}
+                >
+                  <Text style={{ color: form.responsibleAdminId === "" ? '#fff' : '#6b7280', fontWeight: '600', fontSize: 13 }}>Atanmamış</Text>
+                </TouchableOpacity>
+                {admins.map(admin => (
+                  <TouchableOpacity 
+                    key={admin.id}
+                    onPress={() => isAdmin && setForm({...form, responsibleAdminId: admin.id})}
+                    disabled={!isAdmin}
+                    className={`px-4 py-2 rounded-full border ${form.responsibleAdminId === admin.id ? 'bg-indigo-600 border-indigo-600' : 'bg-[#f8fafc] border-gray-200'}`}
+                  >
+                    <Text style={{ color: form.responsibleAdminId === admin.id ? '#fff' : '#4b5563', fontWeight: '600', fontSize: 13 }}>{admin.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View className="flex-row gap-4 mb-5">
+                <View className="flex-1">
+                  <Text className="text-sm font-bold text-gray-700 mb-1.5">Cinsiyet</Text>
+                  <TextInput value={form.gender} onChangeText={t => setForm({...form, gender: t})} placeholder="Erkek/Kadın" className="bg-[#f8fafc] border border-gray-200 rounded-2xl px-4 py-3.5 text-gray-900 font-medium" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-bold text-gray-700 mb-1.5">Yaş</Text>
+                  <TextInput value={form.age} onChangeText={t => setForm({...form, age: t})} keyboardType="numeric" placeholder="Örn: 35" className="bg-[#f8fafc] border border-gray-200 rounded-2xl px-4 py-3.5 text-gray-900 font-medium" />
+                </View>
+              </View>
+
               <Text className="text-sm font-bold text-gray-700 mb-1.5">Hastalık (Kısa Tanıtım)</Text>
               <TextInput value={form.shortDescription} onChangeText={t => setForm({...form, shortDescription: t})} placeholder="Örn: Bel Fıtığı" className="bg-[#f8fafc] border border-gray-200 rounded-2xl px-4 py-3.5 mb-5 text-gray-900 font-medium" />
               
               <Text className="text-sm font-bold text-gray-700 mb-1.5">Kapsamlı Detaylar</Text>
-              <TextInput value={form.longDetails} onChangeText={t => setForm({...form, longDetails: t})} placeholder="Yapay zeka için kritik yönergeler..." multiline numberOfLines={5} className="bg-[#f8fafc] border border-gray-200 rounded-2xl px-4 py-4 mb-2 text-gray-900 font-medium h-32" style={{ textAlignVertical: 'top' }} />
+              <TextInput value={form.longDetails} onChangeText={t => setForm({...form, longDetails: t})} placeholder="Öykü, önceki değerlendirmeler..." multiline numberOfLines={4} className="bg-[#f8fafc] border border-gray-200 rounded-2xl px-4 py-4 mb-5 text-gray-900 font-medium h-24" style={{ textAlignVertical: 'top' }} />
+
+              <Text className="text-sm font-bold text-gray-700 mb-1.5">Klinik Görüş</Text>
+              <TextInput value={form.clinicalOpinion} onChangeText={t => setForm({...form, clinicalOpinion: t})} placeholder="Klinik görüşünüz ve notlarınız..." multiline numberOfLines={4} className="bg-[#f8fafc] border border-gray-200 rounded-2xl px-4 py-4 mb-2 text-gray-900 font-medium h-24" style={{ textAlignVertical: 'top' }} />
             </View>
 
             <TouchableOpacity 

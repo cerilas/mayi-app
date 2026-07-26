@@ -43,7 +43,94 @@ const ROLE_META: Record<GuideRole, { label: string; description: string; icon: a
   },
 };
 
+const PERMISSION_ROWS = [
+  { capability: "Kendi sohbet, klasör ve paylaşımları", admin: "Tam", physio: "Tam", user: "Tam", patient: "Tam" },
+  { capability: "Sohbet modelini seçme", admin: "Kendi sohbeti", physio: "Kendi sohbeti", user: "Kendi sohbeti", patient: "Hayır · genel model" },
+  { capability: "Dosya, Web Araması ve Görsel Üret", admin: "Evet", physio: "Evet", user: "Evet", patient: "Evet" },
+  { capability: "Kişisel Temel / Ek Talimat", admin: "Evet", physio: "Evet", user: "Evet", patient: "Hayır" },
+  { capability: "Hasta listesini görme", admin: "Tüm hastalar", physio: "Yalnızca atanan", user: "Hayır", patient: "Hayır" },
+  { capability: "Hasta profilini düzenleme", admin: "Tüm hastalar", physio: "Yalnızca atanan", user: "Hayır", patient: "Hayır" },
+  { capability: "Hasta oluşturma / silme / toplu aktarma", admin: "Evet", physio: "Hayır", user: "Hayır", patient: "Hayır" },
+  { capability: "Sorumlu atama veya değiştirme", admin: "Evet", physio: "Hayır", user: "Hayır", patient: "Hayır" },
+  { capability: "Kullanıcı ve rol yönetimi", admin: "Evet", physio: "Hayır", user: "Hayır", patient: "Hayır" },
+  { capability: "Genel Hasta Talimatı ve hasta modeli", admin: "Global yönetir", physio: "Hayır", user: "Hayır", patient: "Hayır" },
+  { capability: "API, SMS ve rapor ayarları", admin: "Evet", physio: "Hayır", user: "Hayır", patient: "Hayır" },
+  { capability: "Sistem istatistikleri", admin: "Evet", physio: "Hayır", user: "Hayır", patient: "Hayır" },
+] as const;
+
+const INSTRUCTION_ROWS = [
+  {
+    name: "Varsayılan platform temel talimatı",
+    key: "Kod / ortam ayarı",
+    editor: "Arayüzden düzenlenmez",
+    scope: "Temel talimatı boş olan kişisel sohbetler; hastalarda her zaman temel katman",
+    effect: "Türkçe yanıt ve platformun temel davranış çerçevesini sağlar.",
+  },
+  {
+    name: "Temel Talimat",
+    key: "base_instruction",
+    editor: "Admin, Fizyoterapist, Kullanıcı",
+    scope: "Yalnızca kaydeden kişinin sohbetleri",
+    effect: "Asistanın ana kimliğini belirler. Hasta sohbetlerinde okunmaz.",
+  },
+  {
+    name: "Ek Talimatlar",
+    key: "system_instruction",
+    editor: "Admin, Fizyoterapist, Kullanıcı",
+    scope: "Yalnızca kaydeden kişinin sohbetleri",
+    effect: "Temel talimata özel kurallar olarak eklenir; ton, format ve çalışma şeklini daraltır.",
+  },
+  {
+    name: "Genel Hasta Talimatı",
+    key: "patient_system_instruction",
+    editor: "Yalnızca Admin",
+    scope: "Sistemdeki tüm hastaların sohbetleri",
+    effect: "Tüm hastalar için iletişim dili, güvenlik sınırı ve klinik genel kuralları belirler.",
+  },
+  {
+    name: "Hasta Profil Bağlamı",
+    key: "PatientProfile",
+    editor: "Admin; atanmış hasta için Fizyoterapist",
+    scope: "Yalnızca ilgili hastanın sohbetleri",
+    effect: "Ad, yaş, klinik bilgiler, görüş ve video bağlantılarını hastaya özel bağlam yapar.",
+  },
+  {
+    name: "Bilgilendirme metni",
+    key: "ENABLE_DISCLAIMER",
+    editor: "Sistem yapılandırması",
+    scope: "Tüm roller",
+    effect: "İçeriğin bilgilendirme amaçlı olduğunu ve uzman değerlendirmesi gerektiğini ekler.",
+  },
+] as const;
+
 const SECTIONS: GuideSection[] = [
+  {
+    id: "rol-hiyerarsisi", eyebrow: "Rol mimarisi", title: "Dört rol, üç çalışma alanı",
+    description: "Rollerin sistemdeki yerini, birbirleriyle ilişkisini ve hasta atama hiyerarşisini anlayın.",
+    icon: "H1", audience: "all", duration: "4 rol",
+    items: [
+      { title: "Admin · Sistem yöneticisi", detail: "Kullanıcılar, roller, tüm hastalar, global yapay zekâ ayarları, SMS ve raporlama üzerinde en geniş yetkiye sahiptir.", badge: "En geniş yetki" },
+      { title: "Fizyoterapist · Atanmış hasta sorumlusu", detail: "Kendi sohbetlerini yönetir; yalnızca kendisine atanmış hastaları görüp klinik bağlamlarını günceller.", badge: "Atama kapsamlı" },
+      { title: "Kullanıcı · Bağımsız sohbet kullanıcısı", detail: "Hasta profili olmayan standart roldür. Kendi sohbet, model ve kişisel talimatlarını kullanır; hasta yönetemez." },
+      { title: "Hasta · Klinik son kullanıcı", detail: "Kendi profili, Genel Hasta Talimatı ve adminin seçtiği hasta modeliyle sohbet eder.", badge: "Kısıtlı ayarlar" },
+    ],
+    note: { tone: "info", title: "Hiyerarşi kalıtım değildir", text: "Fizyoterapist Admin yetkilerini miras almaz. Kullanıcı da Fizyoterapist ile Hasta arasında bir terfi basamağı değil, ayrı bir sohbet rolüdür." },
+    keywords: ["rol", "hiyerarşi", "admin", "fizyoterapist", "kullanıcı", "hasta", "atama"],
+  },
+  {
+    id: "yetki-matrisi", eyebrow: "Yetki tablosu", title: "Hangi rol ne yapabilir?",
+    description: "Ekran, veri ve ayar yetkilerini rol bazında karşılaştırın.",
+    icon: "H2", audience: "all", duration: "12 yetki",
+    note: { tone: "warning", title: "En az yetki ilkesi", text: "Günlük klinik çalışma için Fizyoterapist rolünü; global yönetim işlemleri için Admin rolünü kullanın." },
+    keywords: ["yetki", "matris", "izin", "erişim", "kim ne yapar", "rol tablosu"],
+  },
+  {
+    id: "talimat-mimarisi", eyebrow: "Yapay zekâ davranışı", title: "Talimatlar kimi etkiler?",
+    description: "Kişisel, global ve hastaya özel katmanların farkını ve birleşme sırasını görün.",
+    icon: "H3", audience: "all", duration: "6 katman",
+    note: { tone: "warning", title: "En kritik ayrım", text: "Temel ve Ek Talimatlar kullanıcıya özeldir. Genel Hasta Talimatı globaldir. Hasta Profil Bağlamı yalnızca tek hastaya özeldir." },
+    keywords: ["temel talimat", "ek talimat", "sistem talimatı", "hasta talimatı", "genel", "kişisel"],
+  },
   {
     id: "baslangic", eyebrow: "Hızlı başlangıç", title: "İlk 10 dakikada sistemi hazırlayın",
     description: "Hesabınızı kişiselleştirin, ilk sohbetinizi açın ve çalışma alanınızı düzenleyin.",
@@ -188,6 +275,102 @@ function Accordion({ section }: { section: GuideSection }) {
           <Text style={{ fontSize: 13, color: '#4b5563', lineHeight: 20, marginTop: 16, marginBottom: 16 }}>
             {section.description}
           </Text>
+
+          {section.id === "rol-hiyerarsisi" && (
+            <View style={{ backgroundColor: '#f9fafb', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 16 }}>
+              <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 2, borderColor: C.brand, alignItems: 'center' }}>
+                <Text style={{ fontSize: 10, color: C.brand, fontWeight: '800', letterSpacing: 1 }}>YÖNETİM KATMANI</Text>
+                <Text style={{ fontSize: 16, fontWeight: '800', color: '#111827', marginTop: 4 }}>Admin</Text>
+                <Text style={{ fontSize: 11, color: '#6b7280', lineHeight: 17, textAlign: 'center', marginTop: 4 }}>Hesap, rol, global ayar ve hasta atamalarını yönetir.</Text>
+              </View>
+              <Text style={{ textAlign: 'center', color: C.brand, fontSize: 20, marginVertical: 6 }}>↓</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e5e7eb' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#111827', textAlign: 'center' }}>Fizyoterapist</Text>
+                  <Text style={{ fontSize: 10, color: '#6b7280', lineHeight: 15, textAlign: 'center', marginTop: 4 }}>Atanmış hastaların klinik sorumlusu</Text>
+                  <Text style={{ textAlign: 'center', color: C.brand, marginVertical: 4 }}>↓</Text>
+                  <View style={{ backgroundColor: `${C.brand}12`, borderRadius: 8, padding: 7 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: C.brand, textAlign: 'center' }}>Atanmış Hastalar</Text>
+                  </View>
+                </View>
+                <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e5e7eb' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#111827', textAlign: 'center' }}>Kullanıcı</Text>
+                  <Text style={{ fontSize: 10, color: '#6b7280', lineHeight: 15, textAlign: 'center', marginTop: 4 }}>Bağımsız kişisel sohbet alanı</Text>
+                  <Text style={{ textAlign: 'center', color: '#9ca3af', marginVertical: 4 }}>·</Text>
+                  <View style={{ backgroundColor: '#f3f4f6', borderRadius: 8, padding: 7 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#6b7280', textAlign: 'center' }}>Hasta yönetimi yok</Text>
+                  </View>
+                </View>
+              </View>
+              <Text style={{ fontSize: 10, color: '#6b7280', lineHeight: 16, textAlign: 'center', marginTop: 10 }}>Hasta bir Admin veya Fizyoterapiste atanabilir. Admin tüm hastaları, Fizyoterapist yalnızca kendisine atananları görür.</Text>
+            </View>
+          )}
+
+          {section.id === "yetki-matrisi" && (
+            <View style={{ gap: 10, marginBottom: 16 }}>
+              {PERMISSION_ROWS.map((row) => (
+                <View key={row.capability} style={{ backgroundColor: '#f9fafb', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e5e7eb' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#111827', lineHeight: 18, marginBottom: 10 }}>{row.capability}</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {[
+                      { role: 'Admin', value: row.admin },
+                      { role: 'Fizyo', value: row.physio },
+                      { role: 'Kullanıcı', value: row.user },
+                      { role: 'Hasta', value: row.patient },
+                    ].map(({ role, value }) => {
+                      const denied = value.startsWith('Hayır');
+                      return (
+                        <View key={role} style={{ width: '48%', backgroundColor: '#fff', borderRadius: 9, padding: 8, borderWidth: 1, borderColor: denied ? '#fee2e2' : '#dcfce7' }}>
+                          <Text style={{ fontSize: 9, fontWeight: '800', color: '#6b7280', textTransform: 'uppercase' }}>{role}</Text>
+                          <Text style={{ fontSize: 10, color: denied ? '#dc2626' : '#15803d', fontWeight: '700', marginTop: 3 }}>{denied ? '— ' : '✓ '}{value}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {section.id === "talimat-mimarisi" && (
+            <View style={{ gap: 10, marginBottom: 16 }}>
+              {INSTRUCTION_ROWS.map((row) => (
+                <View key={row.name} style={{ backgroundColor: '#f9fafb', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e5e7eb' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#111827' }}>{row.name}</Text>
+                  <Text style={{ fontSize: 9, color: '#9ca3af', marginTop: 3, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>{row.key}</Text>
+                  <View style={{ marginTop: 10, gap: 6 }}>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <Text style={{ width: 72, fontSize: 10, fontWeight: '800', color: '#6b7280' }}>Düzenleyen</Text>
+                      <Text style={{ flex: 1, fontSize: 10, color: '#4b5563', lineHeight: 16 }}>{row.editor}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <Text style={{ width: 72, fontSize: 10, fontWeight: '800', color: '#6b7280' }}>Kapsam</Text>
+                      <Text style={{ flex: 1, fontSize: 10, color: C.brand, fontWeight: '700', lineHeight: 16 }}>{row.scope}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <Text style={{ width: 72, fontSize: 10, fontWeight: '800', color: '#6b7280' }}>Etkisi</Text>
+                      <Text style={{ flex: 1, fontSize: 10, color: '#4b5563', lineHeight: 16 }}>{row.effect}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+
+              <View style={{ backgroundColor: `${C.brand}0D`, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: `${C.brand}40` }}>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: C.brand }}>Personel / Kullanıcı sohbeti</Text>
+                <Text style={{ fontSize: 10, color: '#4b5563', lineHeight: 18, marginTop: 6 }}>Tarih-saat → Kişisel Temel Talimat (boşsa varsayılan) → Bilgilendirme → Aynı kişinin Ek Talimatları → Kendi sohbet geçmişi</Text>
+              </View>
+              <View style={{ backgroundColor: '#fffbeb', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#f59e0b' }}>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#b45309' }}>Hasta sohbeti</Text>
+                <Text style={{ fontSize: 10, color: '#4b5563', lineHeight: 18, marginTop: 6 }}>Tarih-saat → Platform varsayılanı → Bilgilendirme → İlgili Hasta Profili → Genel Hasta Talimatı → Hastanın sohbet geçmişi</Text>
+                <Text style={{ fontSize: 10, color: '#92400e', lineHeight: 16, marginTop: 6, fontWeight: '700' }}>Admin/Fizyoterapist kişisel talimatları hastaya aktarılmaz.</Text>
+              </View>
+              <View style={{ backgroundColor: '#f3f4f6', borderRadius: 12, padding: 12 }}>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#111827' }}>Global etki yaratan diğer ayarlar</Text>
+                <Text style={{ fontSize: 10, color: '#4b5563', lineHeight: 17, marginTop: 6 }}><Text style={{ fontWeight: '800' }}>Hasta Varsayılan Modeli:</Text> Admin seçer, tüm hastalar kullanır; personeli etkilemez.</Text>
+                <Text style={{ fontSize: 10, color: '#4b5563', lineHeight: 17, marginTop: 4 }}><Text style={{ fontWeight: '800' }}>Gemini API Anahtarı:</Text> Yalnızca Admin kaydeder; en son güncellenen kayıt sistem çağrılarında kullanıldığı için operasyonel etkisi globaldir.</Text>
+              </View>
+            </View>
+          )}
 
           {section.steps && (
             <View style={{ gap: 16 }}>

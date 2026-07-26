@@ -52,7 +52,7 @@ export default function TabLayout() {
         options={{
           title: 'Kılavuz',
           tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
-          href: isAdmin ? '/docs' : null,
+          href: isStaff ? '/docs' : null,
         }}
       />
       <Tabs.Screen
