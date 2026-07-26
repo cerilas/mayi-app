@@ -28,11 +28,22 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#07090f",
+          "image": "./assets/images/my-logo.png",
+          "imageWidth": 180,
+          "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MY FizyoAI, sohbete görsel ekleyebilmeniz için fotoğraflarınıza erişir.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,
