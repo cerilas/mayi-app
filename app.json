@@ -10,7 +10,7 @@
     "ios": {
       "bundleIdentifier": "com.myfizyoterapi.app",
       "buildNumber": "1.0.0",
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "adaptiveIcon": {

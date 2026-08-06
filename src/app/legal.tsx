@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, ShieldCheck, FileText, Info, AlertTriangle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -52,7 +52,11 @@ export default function LegalScreen() {
         </View>
 
         {/* Kullanım Koşulları */}
-        <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm border border-gray-100">
+        <TouchableOpacity 
+          onPress={() => Linking.openURL('https://my.cerilas.com/terms')}
+          activeOpacity={0.7}
+          className="bg-white rounded-3xl p-6 mb-6 shadow-sm border border-gray-100"
+        >
           <View className="flex-row items-center mb-4">
             <View className="w-10 h-10 bg-teal-100 rounded-xl items-center justify-center mr-3">
               <FileText color="#0d9488" size={20} />
@@ -65,13 +69,18 @@ export default function LegalScreen() {
           <Text className="text-gray-600 leading-6 font-medium mb-4">
             • Fizyoterapist tarafından atanan egzersizleri ve yapay zeka asistanının yönlendirmelerini uygularken fiziksel sınırlarınızı zorlamamalısınız.
           </Text>
-          <Text className="text-gray-600 leading-6 font-medium">
+          <Text className="text-gray-600 leading-6 font-medium mb-4">
             • Sistem üzerinde yapılan sohbetler ve veriler, hizmet kalitesini artırmak amacıyla işlenmekte ve güvenle saklanmaktadır.
           </Text>
-        </View>
+          <Text className="text-teal-600 font-bold text-sm">Detaylı okumak için tıklayın &rarr;</Text>
+        </TouchableOpacity>
 
         {/* Gizlilik & KVKK */}
-        <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm border border-gray-100">
+        <TouchableOpacity 
+          onPress={() => Linking.openURL('https://my.cerilas.com/privacy')}
+          activeOpacity={0.7}
+          className="bg-white rounded-3xl p-6 mb-6 shadow-sm border border-gray-100"
+        >
           <View className="flex-row items-center mb-4">
             <View className="w-10 h-10 bg-blue-100 rounded-xl items-center justify-center mr-3">
               <ShieldCheck color="#2563eb" size={20} />
@@ -84,10 +93,11 @@ export default function LegalScreen() {
           <Text className="text-gray-600 leading-6 font-medium mb-4">
             Sağlık verileriniz (yaş, cinsiyet, hastalık bilgileri ve klinik notlar) yalnızca tedavinizi yürüten fizyoterapistiniz ve size özel hizmet sunan yapay zeka asistanı tarafından kullanılmak üzere yüksek güvenlik standartlarıyla bulutta şifrelenerek saklanır.
           </Text>
-          <Text className="text-gray-600 leading-6 font-medium">
+          <Text className="text-gray-600 leading-6 font-medium mb-4">
             Uygulamayı kullanarak çerez ve gizlilik politikamızı kabul etmiş sayılırsınız. Verilerinizin silinmesi talebi için yöneticiniz ile iletişime geçebilirsiniz.
           </Text>
-        </View>
+          <Text className="text-blue-600 font-bold text-sm">Detaylı okumak için tıklayın &rarr;</Text>
+        </TouchableOpacity>
         
         <View className="items-center mt-4 mb-8">
           <Text className="text-gray-400 font-bold text-xs">MYFizyo AI © {new Date().getFullYear()}</Text>

@@ -306,9 +306,9 @@ export function MarkdownMessage({
       colorScheme="dark"
       cursorColor={textColor}
       onLinkPress={(url) => {
-        if (!onLinkPress) return true;
+        if (!onLinkPress) return false;
         onLinkPress(resolveMarkdownUri(url, apiOrigin));
-        return false;
+        return true;
       }}
       rules={rules}
       streaming={isStreaming}

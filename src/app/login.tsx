@@ -20,7 +20,7 @@ import { Lock, Mail, Bot, Smartphone, Stethoscope } from 'lucide-react-native';
 import { BrandLogo } from '../components/brand-logo';
 import { BlurView } from 'expo-blur';
 
-const HOST = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+const HOST = 'https://my.cerilas.com';
 const { width, height } = Dimensions.get('window');
 
 // --- Custom Animated Button Component ---

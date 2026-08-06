@@ -17,7 +17,7 @@ import { BrandLogo } from '../../components/brand-logo';
 import { AppHeader } from '../../components/app-header';
 import { Skeleton } from '../../components/skeleton';
 
-const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api' : 'http://localhost:3000/api';
+const API_URL = 'https://my.cerilas.com/api';
 
 const EMPTY_FORM = {
   name: "", email: "", password: "", photo: "", age: "", phone: "", 

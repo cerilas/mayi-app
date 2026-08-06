@@ -18,6 +18,7 @@ import { BrandLogo } from '../components/brand-logo';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '../components/toast-config';
 import { ThemeProvider } from '../context/ThemeContext';
+import { AIConsentModal } from '../components/AIConsentModal';
 import "../global.css";
 
 SplashScreen.setOptions({ duration: 250, fade: true });
@@ -215,6 +216,7 @@ export default function RootLayout() {
         </Animated.View>
       )}
       <Toast config={toastConfig} topOffset={60} />
+      <AIConsentModal />
     </>
     </ThemeProvider>
   );

@@ -12,7 +12,7 @@ import { useTheme } from '../../context/ThemeContext';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 
-const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api' : 'http://localhost:3000/api';
+const API_URL = 'https://my.cerilas.com/api';
 
 function AccordionItem({ title, icon, expanded, onToggle, children }: any) {
   return (
@@ -585,6 +585,36 @@ export default function SettingsScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
+            </View>
+          </AccordionItem>
+        </Animated.View>
+
+        {/* Tıbbi Uyarı ve Kaynaklar */}
+        <Animated.View entering={FadeInDown.delay(250).springify()}>
+          <AccordionItem
+            title="Tıbbi Uyarı & Kaynaklar"
+            icon={<AlertCircle color="#ef4444" size={24} />}
+            expanded={expandedSection === 'medical_warning'}
+            onToggle={() => toggleSection('medical_warning')}
+          >
+            <View className="bg-red-50 p-4 rounded-xl border border-red-200 mb-4">
+              <View className="flex-row items-center mb-2">
+                <AlertCircle size={20} color="#dc2626" />
+                <Text className="text-red-700 font-bold ml-2">Tıbbi Sorumluluk Reddi</Text>
+              </View>
+              <Text className="text-red-900 text-xs leading-relaxed">
+                Bu uygulama fizyoterapistler ve sağlık profesyonelleri için bir asistan aracıdır. Bu uygulama üzerinden elde edilen analizler ve egzersiz planları, bir doktor tavyesinin veya tıbbi teşhisin yerine geçmez. Lütfen herhangi bir tıbbi karar vermeden önce mutlaka yetkili bir hekime danışınız.
+              </Text>
+            </View>
+
+            <View className="bg-white p-4 rounded-xl border border-gray-200">
+              <View className="flex-row items-center mb-2">
+                <FileText size={20} color="#4b5563" />
+                <Text className="text-gray-800 font-bold ml-2">Bilgi Kaynakları (Citations)</Text>
+              </View>
+              <Text className="text-gray-600 text-xs leading-relaxed">
+                Uygulama içerisindeki genel fizyoterapi tavsiyeleri, postür analiz yönergeleri ve egzersiz programları uluslararası kabul görmüş fizyoterapi prensiplerine (WHO ve yerel sağlık bakanlıkları rehberleri) ve tıp literatüründeki temel anatomi/kinesiyoloji kurallarına dayanarak oluşturulmaktadır. Detaylı bilimsel kaynaklar için profesyonel literatürü takip ediniz.
+              </Text>
             </View>
           </AccordionItem>
         </Animated.View>

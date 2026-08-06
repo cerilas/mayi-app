@@ -40,10 +40,10 @@ import {
 } from '../../lib/mobile-files';
 import { useTheme } from '../../context/ThemeContext';
 
-const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api' : 'http://localhost:3000/api';
+const API_URL = 'https://my.cerilas.com/api';
 const API_ORIGIN = API_URL.replace(/\/api$/, '');
 // Share link uses the network IP so it opens in real browsers/devices
-const SHARE_ORIGIN = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://192.168.1.107:3000';
+const SHARE_ORIGIN = 'https://my.cerilas.com';
 
 interface PickedUploadAsset {
   file?: Blob;
@@ -114,6 +114,7 @@ export default function ChatScreen() {
   const [shareActive, setShareActive] = useState(false);
   const [shareId, setShareId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  const pickerLock = useRef(false);
   const sidebarAnim = useSharedValue(0);
 
   const authorization = `Bearer ${token}`;
@@ -435,7 +436,12 @@ export default function ChatScreen() {
   };
 
   const pickImages = async () => {
+    if (pickerLock.current) return;
+    pickerLock.current = true;
     setToolsOpen(false);
+
+    // Wait for UI to settle before presenting native picker
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
       if (Platform.OS !== 'web') {
@@ -473,11 +479,18 @@ export default function ChatScreen() {
       await uploadPickedAssets(picked);
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : 'Görseller seçilemedi');
+    } finally {
+      pickerLock.current = false;
     }
   };
 
   const pickDocuments = async () => {
+    if (pickerLock.current) return;
+    pickerLock.current = true;
     setToolsOpen(false);
+
+    // Wait for UI to settle before presenting native picker
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -496,6 +509,8 @@ export default function ChatScreen() {
       })));
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : 'Dosya seçilemedi');
+    } finally {
+      pickerLock.current = false;
     }
   };
 
@@ -729,6 +744,13 @@ export default function ChatScreen() {
       }
     } catch (error) {
       console.error('sendMessage error', error);
+      if (error instanceof Error && error.message.includes('404') && error.message.includes('NOT_FOUND')) {
+        Alert.alert(
+          'Model Bulunamadı',
+          'Seçili yapay zeka modeli artık desteklenmiyor. Lütfen ayarlar sayfasından güncel bir model seçin.',
+          [{ text: 'Tamam' }]
+        );
+      }
       setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, content: 'Yanıt alınamadı. Lütfen tekrar deneyin.' } : m));
     } finally {
       setSending(false);
@@ -805,6 +827,9 @@ export default function ChatScreen() {
                   content={item.content}
                   isStreaming={!isUser && sending && item.id.startsWith('placeholder-')}
                   isUser={isUser}
+                  onLinkPress={(url) => {
+                    Linking.openURL(url).catch(err => console.error("Could not open URL", err));
+                  }}
                   onImagePress={(uri, fileName, mimeType, imageAuthorization) => {
                     setPreviewImage({
                       uri,
@@ -928,7 +953,7 @@ export default function ChatScreen() {
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: '#000', zIndex: 10,
           }, overlayStyle]}
-          pointerEvents="box-only"
+          pointerEvents="auto"
         >
           <Pressable style={{ flex: 1 }} onPress={closeSidebar} />
         </Animated.View>
@@ -1524,7 +1549,7 @@ export default function ChatScreen() {
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
               style={{ flex: 1 }}
-              keyboardVerticalOffset={0}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 60 : 0}
             >
             {messages.length === 0 ? (
               // Welcome screen — matches web WelcomeScreen.tsx
@@ -1588,12 +1613,14 @@ export default function ChatScreen() {
               />
             )}
 
-            {/* Input bar — matches web MessageInput.tsx pill style */}
             <View style={{
               paddingHorizontal: 12, paddingTop: 10, paddingBottom: insets.bottom + 10,
               borderTopWidth: 1, borderTopColor: C.borderPrimary,
               backgroundColor: C.bgPrimary,
             }}>
+              <Text style={{ fontSize: 9, color: C.textTertiary, textAlign: 'center', marginBottom: 6, paddingHorizontal: 10, letterSpacing: 0.2 }}>
+                Uyarı: AI analizleri tıbbi teşhis veya doktor tavsiyesi yerine geçmez. Kararlarınızı her zaman uzman bir hekime danışarak veriniz.
+              </Text>
               <PendingAttachments
                 attachments={pendingAttachments}
                 onRemove={id => setPendingAttachments(current => (
