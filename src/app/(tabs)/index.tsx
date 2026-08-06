@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList, Image, Linking,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  StatusBar, Pressable, ScrollView, Alert, Modal,
+  StatusBar, Pressable, ScrollView, Alert, Modal, DeviceEventEmitter
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -15,7 +15,7 @@ import {
   Check, ChevronRight, Download, Folder, FolderOpen, FolderPlus,
   ImageIcon, FileUp,
   Inbox, LogOut, Menu, MoreHorizontal, Pencil, Plus,
-  Send, Settings, Sparkles, Trash2, WandSparkles, X, Share2, Bot, Brain, Activity
+  Send, Settings, Sparkles, Trash2, WandSparkles, X, Share2, Bot, Brain, Activity, AlertCircle, Info
 } from 'lucide-react-native';
 import axios from 'axios';
 import Animated, { FadeInDown, withTiming, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
@@ -805,6 +805,27 @@ export default function ChatScreen() {
             onOpenFile={openAttachmentFile}
             onOpenImage={setPreviewImage}
           />
+
+          {!isUser && (
+            <View style={{ alignItems: 'flex-start', marginBottom: 6, marginLeft: 4 }}>
+              <TouchableOpacity 
+                activeOpacity={0.6}
+                onPress={() => DeviceEventEmitter.emit('showMedicalDisclaimer')}
+                style={{ 
+                  flexDirection: 'row', alignItems: 'center', 
+                  backgroundColor: '#f3f4f6', 
+                  paddingHorizontal: 8, paddingVertical: 4, 
+                  borderRadius: 12,
+                  borderWidth: 1, borderColor: '#e5e7eb'
+                }}
+              >
+                <AlertCircle color="#9ca3af" size={11} style={{ marginRight: 4 }} />
+                <Text style={{ fontSize: 10, color: '#6b7280', fontWeight: '500' }}>Tıbbi geçerliliği yoktur</Text>
+                <Text style={{ fontSize: 10, color: '#9ca3af', fontWeight: '500', marginLeft: 4, textDecorationLine: 'underline' }}>Detaylar</Text>
+                <ChevronRight color="#9ca3af" size={11} style={{ marginLeft: 1 }} />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {(item.content !== '' || !isUser) && (
             <View
@@ -1618,9 +1639,7 @@ export default function ChatScreen() {
               borderTopWidth: 1, borderTopColor: C.borderPrimary,
               backgroundColor: C.bgPrimary,
             }}>
-              <Text style={{ fontSize: 9, color: C.textTertiary, textAlign: 'center', marginBottom: 6, paddingHorizontal: 10, letterSpacing: 0.2 }}>
-                Uyarı: AI analizleri tıbbi teşhis veya doktor tavsiyesi yerine geçmez. Kararlarınızı her zaman uzman bir hekime danışarak veriniz.
-              </Text>
+
               <PendingAttachments
                 attachments={pendingAttachments}
                 onRemove={id => setPendingAttachments(current => (
@@ -1717,6 +1736,9 @@ export default function ChatScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
+              <Text style={{ textAlign: 'center', fontSize: 10, color: C.textTertiary, marginTop: 8, marginHorizontal: 16, lineHeight: 14 }}>
+                UYARI: MY FizioAI tıbbi bir cihaz değildir. Teşhis koyamaz ve tıbbi kararlar için tek kaynak olmamalıdır. Lütfen hekiminize danışınız.
+              </Text>
             </View>
             </KeyboardAvoidingView>
           )}
