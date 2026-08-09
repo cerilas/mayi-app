@@ -8,8 +8,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Users, Plus, Search, Edit2, Trash2, Key, MessageCircle, 
-  ShieldAlert, X, Image as ImageIcon, ChevronRight, User
+  ShieldAlert, X, Image as ImageIcon, ChevronRight, User, Activity
 } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -26,6 +27,7 @@ const EMPTY_FORM = {
 };
 
 export default function PatientsScreen() {
+  const router = useRouter();
   const { user, token } = useAuthStore();
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -339,19 +341,24 @@ export default function PatientsScreen() {
         {/* ACTION BUTTONS — Admin only */}
         {isAdmin && (
         <View className="flex-row items-center justify-between pt-1">
-          <TouchableOpacity onPress={() => handleRevealPassword(item.id)} className="flex-row items-center justify-center bg-gray-50 rounded-xl px-3 py-2 flex-1 mr-2">
+          <TouchableOpacity onPress={() => handleRevealPassword(item.id)} className="flex-row items-center justify-center bg-gray-50 rounded-xl px-2 py-2 flex-1 mr-2">
             <Key size={14} color="#6b7280" />
-            <Text className="text-gray-600 text-xs font-bold ml-1.5">Şifre Gör</Text>
+            <Text className="text-gray-600 text-[10px] font-bold ml-1">Şifre</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity onPress={() => openSmsModal(item)} className="flex-row items-center justify-center bg-teal-50 rounded-xl px-3 py-2 flex-1 mr-2">
+          <TouchableOpacity onPress={() => openSmsModal(item)} className="flex-row items-center justify-center bg-teal-50 rounded-xl px-2 py-2 flex-1 mr-2">
             <MessageCircle size={14} color="#0d9488" />
-            <Text className="text-teal-700 text-xs font-bold ml-1.5">SMS</Text>
+            <Text className="text-teal-700 text-[10px] font-bold ml-1">SMS</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity onPress={() => setRightsTarget(item)} className="flex-row items-center justify-center bg-purple-50 rounded-xl px-3 py-2 flex-1 mr-2">
+          <TouchableOpacity onPress={() => router.push({ pathname: '/posture', params: { userId: item.id } })} className="flex-row items-center justify-center bg-orange-50 rounded-xl px-2 py-2 flex-1 mr-2">
+            <Activity size={14} color="#ea580c" />
+            <Text className="text-orange-700 text-[10px] font-bold ml-1">Postür</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity onPress={() => setRightsTarget(item)} className="flex-row items-center justify-center bg-purple-50 rounded-xl px-2 py-2 flex-1 mr-2">
             <Users size={14} color="#7e22ce" />
-            <Text className="text-purple-700 text-xs font-bold ml-1.5">Hak Ver</Text>
+            <Text className="text-purple-700 text-[10px] font-bold ml-1">Hak</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => handleDelete(item.id)} className="w-10 h-10 items-center justify-center bg-red-50 rounded-xl">
