@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, AlertTriangle, Info, Activity } from 'lucide-react-native';
 import axios from 'axios';
@@ -42,6 +42,7 @@ interface Insight {
 export default function PostureScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { token } = useAuthStore();
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -295,15 +296,17 @@ export default function PostureScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#f8fafc]" edges={['top']}>
+    <View className="flex-1 bg-[#f8fafc]">
       {/* Header */}
-      <View className="flex-row items-center p-4 bg-white border-b border-gray-100 shadow-sm z-10">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 mr-3 bg-gray-50 rounded-full">
-          <ArrowLeft size={22} color="#1e293b" />
-        </TouchableOpacity>
-        <View>
-          <Text className="text-xl font-black text-gray-900">Postür Analizi Raporları</Text>
-          <Text className="text-xs text-gray-500 font-medium">Hastanın analiz sonuçları</Text>
+      <View style={{ paddingTop: Math.max(insets.top, 20) }} className="bg-white border-b border-gray-100 shadow-sm z-10">
+        <View className="flex-row items-center p-4">
+          <TouchableOpacity onPress={() => router.back()} className="p-2 mr-3 bg-gray-50 rounded-full">
+            <ArrowLeft size={22} color="#1e293b" />
+          </TouchableOpacity>
+          <View>
+            <Text className="text-xl font-black text-gray-900">Postür Analizi Raporları</Text>
+            <Text className="text-xs text-gray-500 font-medium">Hastanın analiz sonuçları</Text>
+          </View>
         </View>
       </View>
 
@@ -427,6 +430,6 @@ export default function PostureScreen() {
           ))}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
