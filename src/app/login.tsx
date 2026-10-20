@@ -16,7 +16,7 @@ import Animated, {
   interpolateColor, Easing
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Lock, Mail, Bot, Smartphone, Stethoscope } from 'lucide-react-native';
+import { Lock, Mail, Bot, Smartphone, Activity } from 'lucide-react-native';
 import { BrandLogo } from '../components/brand-logo';
 import { BlurView } from 'expo-blur';
 
@@ -95,9 +95,9 @@ function BackgroundBlobs() {
 
 // --- Auto Scrolling Features ---
 const FEATURE_ITEMS = [
-  { Icon: Bot, color: '#7b2ff7', bg: 'rgba(123,47,247,0.15)', title: 'Yapay Zeka Destekli', desc: 'Google Gemini Altyapısı' },
+  { Icon: Bot, color: '#7b2ff7', bg: 'rgba(123,47,247,0.15)', title: 'Yapay Zeka Destekli', desc: 'Akıllı ve kişiselleştirilmiş' },
   { Icon: Smartphone, color: '#3caade', bg: 'rgba(60,170,222,0.15)', title: '7/24 Asistan', desc: 'Her an yanınızdayız' },
-  { Icon: Stethoscope, color: '#25d366', bg: 'rgba(37,211,102,0.15)', title: 'Klinik Odaklı', desc: 'Fizyoterapistlere özel' },
+  { Icon: Activity, color: '#25d366', bg: 'rgba(37,211,102,0.15)', title: 'Sağlıklı Yaşam', desc: 'Zindelik ve Egzersiz' },
 ];
 
 function AutoScrollingFeatures() {

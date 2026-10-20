@@ -34,7 +34,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="patients"
         options={{
-          title: 'Hastalarım',
+          title: 'Danışanlarım',
           tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
           href: isStaff ? '/patients' : null,
         }}

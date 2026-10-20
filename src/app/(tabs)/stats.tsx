@@ -179,7 +179,7 @@ export default function StatsScreen() {
           <>
             {/* KPI Cards */}
             <View className="flex-row flex-wrap justify-between mb-6">
-              <StatCard title="Kayıtlı Hasta" value={stats.totalPatients} icon={<Users size={20} color="#2563eb" />} bg="bg-blue-50" />
+              <StatCard title="Kayıtlı Danışan" value={stats.totalPatients} icon={<Users size={20} color="#2563eb" />} bg="bg-blue-50" />
               <StatCard title="Aktif Admin" value={stats.activeAdmins} icon={<Users size={20} color="#9333ea" />} bg="bg-purple-50" />
               <StatCard title="Sohbetler" value={stats.activeConversations} icon={<MessageSquare size={20} color="#16a34a" />} bg="bg-green-50" />
               <StatCard title="Yaş Ort." value={stats.avgAge} icon={<Users size={20} color="#ea580c" />} bg="bg-orange-50" />

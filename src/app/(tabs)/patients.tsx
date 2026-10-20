@@ -109,7 +109,7 @@ export default function PatientsScreen() {
       setTotalPages(res.data.totalPages);
     } catch (e) {
       console.warn('Patients fetch err:', e);
-      if (pageNum === 1) Toast.show({ type: 'error', text1: 'Hata', text2: 'Hastalar alınamadı.' });
+      if (pageNum === 1) Toast.show({ type: 'error', text1: 'Hata', text2: 'Danışanlar alınamadı.' });
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -150,9 +150,9 @@ export default function PatientsScreen() {
           try {
             await axios.delete(`${API_URL}/admin/patients/${id}`, { headers, timeout: 10000 });
             setPatients(patients.filter(p => p.id !== id));
-            Toast.show({ type: 'success', text1: 'Başarılı', text2: 'Hasta silindi.' });
+            Toast.show({ type: 'success', text1: 'Başarılı', text2: 'Danışan silindi.' });
           } catch (e) {
-            Toast.show({ type: 'error', text1: 'Hata', text2: 'Hasta silinemedi.' });
+            Toast.show({ type: 'error', text1: 'Hata', text2: 'Danışan silinemedi.' });
           }
         } 
       }
@@ -233,7 +233,7 @@ export default function PatientsScreen() {
       setFormError(null);
       fetchPatients(1, search, true);
     } catch (e: any) {
-      setFormError(e.response?.data?.error || 'Hasta kaydedilemedi. Lütfen bağlantınızı kontrol edin.');
+      setFormError(e.response?.data?.error || 'Danışan kaydedilemedi. Lütfen bağlantınızı kontrol edin.');
     } finally {
       setFormLoading(false);
     }
@@ -255,7 +255,7 @@ export default function PatientsScreen() {
     if (!smsPhone) return Toast.show({ type: 'error', text1: 'Hata', text2: 'Telefon numarası eksik.' });
     setSmsLoading(true);
     try {
-      await axios.post(`${API_URL}/admin/sms`, { userId: smsTarget.id, phone: smsPhone, password: smsPassword }, { headers, timeout: 10000 });
+      await axios.post(`${API_URL}/admin/sms`, { userId: smsTarget.id, phone: smsPhone, newPassword: smsPassword }, { headers, timeout: 10000 });
       Toast.show({ type: 'success', text1: 'Başarılı', text2: 'SMS gönderildi.' });
       setSmsTarget(null);
     } catch (e) {
@@ -385,7 +385,7 @@ export default function PatientsScreen() {
           <TouchableOpacity 
             onPress={() => { setEditingPatient(null); setForm({...EMPTY_FORM, responsibleAdminId: user?.role === 'physiotherapist' ? user.id : ""}); setShowForm(true); }}
             style={{ padding: 8 }}
-            accessibilityLabel="Yeni hasta"
+            accessibilityLabel="Yeni danışan"
           >
             <Plus size={22} color="#ffffff" />
           </TouchableOpacity>
@@ -397,7 +397,7 @@ export default function PatientsScreen() {
           <View className="bg-white rounded-2xl flex-row items-center px-4 py-3 shadow-sm border border-gray-100">
           <Search size={20} color="#94a3b8" />
           <TextInput 
-            placeholder="Hasta ara (isim veya e-posta)..."
+            placeholder="Danışan ara (isim veya e-posta)..."
             placeholderTextColor="#94a3b8"
             value={search}
             onChangeText={setSearch}
@@ -439,7 +439,7 @@ export default function PatientsScreen() {
                 <Users size={32} color="#4f46e5" />
               </View>
               <Text className="text-gray-900 font-bold text-lg">Kayıt Bulunamadı</Text>
-              <Text className="text-gray-400 text-sm mt-1 text-center">Arama kriterlerinize uygun hasta yok veya sisteme henüz hasta eklenmemiş.</Text>
+              <Text className="text-gray-400 text-sm mt-1 text-center">Arama kriterlerinize uygun danışan yok veya sisteme henüz danışan eklenmemiş.</Text>
             </View>
           )
         }
@@ -454,7 +454,7 @@ export default function PatientsScreen() {
       >
         <SafeAreaView className="flex-1 bg-[#f8fafc]">
           <View className="flex-row items-center justify-between p-5 bg-white border-b border-gray-100 shadow-sm z-10">
-            <Text className="text-xl font-black text-gray-900">{editingPatient ? 'Hastayı Düzenle' : 'Yeni Hasta Profili'}</Text>
+            <Text className="text-xl font-black text-gray-900">{editingPatient ? 'Hastayı Düzenle' : 'Yeni Danışan Profili'}</Text>
             <TouchableOpacity onPress={() => { setShowForm(false); setFormError(null); }} className="bg-gray-100 p-2 rounded-full">
               <X size={20} color="#64748b" />
             </TouchableOpacity>
@@ -585,7 +585,7 @@ export default function PatientsScreen() {
               <MessageCircle size={24} color="#0f766e" />
             </View>
             <Text className="text-xl font-black text-gray-900 mb-2">SMS Gönder</Text>
-            <Text className="text-sm font-medium text-gray-500 mb-6">{smsTarget?.name} adlı hastaya giriş bilgilerini içeren bir hatırlatma mesajı atılacaktır.</Text>
+            <Text className="text-sm font-medium text-gray-500 mb-6">{smsTarget?.name} adlı danışana giriş bilgilerini içeren bir hatırlatma mesajı atılacaktır.</Text>
             
             <Text className="text-xs font-bold text-gray-700 mb-1">Telefon</Text>
             <TextInput value={smsPhone} onChangeText={setSmsPhone} placeholder="5XX XXX XX XX" keyboardType="phone-pad" className="bg-[#f8fafc] border border-gray-200 rounded-xl px-4 py-3.5 mb-4 text-gray-900 font-medium" />

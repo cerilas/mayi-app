@@ -31,7 +31,7 @@ export default function LegalScreen() {
             <Text className="text-lg font-black text-gray-900">Hakkımızda</Text>
           </View>
           <Text className="text-gray-600 leading-6 font-medium">
-            MYFizyo AI, yapay zeka destekli yenilikçi bir fizyoterapi asistanı ve takip uygulamasıdır. Amacımız, hastaların tedavi süreçlerini modern teknolojilerle desteklemek ve fizyoterapistlere güçlü bir klinik takip aracı sunmaktır.
+            MYFizyo AI, yapay zeka destekli yenilikçi bir fizyoterapi asistanı ve takip uygulamasıdır. Amacımız, danışanların tedavi süreçlerini modern teknolojilerle desteklemek ve fizyoterapistlere güçlü bir klinik takip aracı sunmaktır.
           </Text>
         </View>
 

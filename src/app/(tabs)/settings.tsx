@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Toast from 'react-native-toast-message';
-import { View, Text, TouchableOpacity, ScrollView, StatusBar, TextInput, ActivityIndicator, Alert, Platform, Modal, KeyboardAvoidingView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StatusBar, TextInput, ActivityIndicator, Alert, Platform, Modal, KeyboardAvoidingView, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/useAuthStore';
 import { LogOut, User, ShieldCheck, ChevronRight, Users, Key, Settings, FileText, UserCircle, Activity, Eye, Mail, MessageSquare, Plus, Trash2, Smartphone, CheckCircle2, X, AlertCircle, Bot, Brain, Sparkles } from 'lucide-react-native';
@@ -247,9 +247,35 @@ export default function SettingsScreen() {
             <View className="flex-row items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
               <ShieldCheck color="#6b7280" size={14} />
               <Text className="text-xs font-bold text-gray-600 uppercase tracking-wider ml-2">
-                {user?.role === 'admin' ? 'Yönetici' : user?.role === 'physiotherapist' ? 'Fizyoterapist' : user?.role === 'patient' ? 'Hasta' : 'Kullanıcı'}
+                {user?.role === 'admin' ? 'Yönetici' : user?.role === 'physiotherapist' ? 'Fizyoterapist' : user?.role === 'patient' ? 'Danışan' : 'Kullanıcı'}
               </Text>
             </View>
+            {isPatient && user?.patientProfile?.responsibleAdmin?.name && (
+              <View className="mt-4 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden w-full max-w-[280px]">
+                <View className="flex-row items-center justify-center px-4 py-3 border-b border-gray-50">
+                  <View className="w-2 h-2 rounded-full bg-emerald-400 mr-2.5" />
+                  <Text className="text-xs font-medium text-gray-500">Sorumlu Fizyoterapist: </Text>
+                  <Text className="text-xs font-bold text-gray-800" numberOfLines={1}>{user.patientProfile.responsibleAdmin.name}</Text>
+                </View>
+                <TouchableOpacity 
+                  onPress={() => {
+                    Alert.alert(
+                      'Terapistime Ulaş',
+                      'Lütfen iletişim yöntemi seçin',
+                      [
+                        { text: 'İptal', style: 'cancel' },
+                        { text: 'WhatsApp', onPress: () => Linking.openURL('whatsapp://send?phone=905406502727').catch(() => Alert.alert('Hata', 'WhatsApp cihazınızda yüklü değil.')) },
+                        { text: 'Ara', onPress: () => Linking.openURL('tel:+905406502727') },
+                      ]
+                    );
+                  }}
+                  className="bg-indigo-50 py-3 flex-row justify-center items-center active:bg-indigo-100"
+                >
+                  <MessageSquare color="#4f46e5" size={14} />
+                  <Text className="text-indigo-700 text-xs font-bold ml-2">Terapistime Ulaş</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </Animated.View>
 
@@ -409,7 +435,7 @@ export default function SettingsScreen() {
                 <Text className="text-white font-bold text-sm">Başlığı Kaydet</Text>
               </TouchableOpacity>
 
-              <Text className="text-xs font-bold text-gray-700 mb-2">Hasta Varsayılan Modeli</Text>
+              <Text className="text-xs font-bold text-gray-700 mb-2">Danışan Varsayılan Modeli</Text>
               <View className="flex-col gap-2 mb-4">
                 {availableModels.map(m => (
                   <TouchableOpacity key={m.id} onPress={() => setPatientModel(m.id)} className={`px-4 py-3 rounded-lg border flex-row items-center justify-between ${patientModel === m.id ? 'bg-yellow-50 border-yellow-500' : 'bg-white border-gray-200'}`}>

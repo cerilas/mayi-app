@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, AlertTriangle, Info, Activity } from 'lucide-react-native';
@@ -22,6 +22,7 @@ interface TestResult {
   testType: string;
   overallQuality: string;
   avgConfidence: number;
+  snapshotUrl?: string;
   measurements: Measurement[];
 }
 
@@ -305,7 +306,7 @@ export default function PostureScreen() {
           </TouchableOpacity>
           <View>
             <Text className="text-xl font-black text-gray-900">Postür Analizi Raporları</Text>
-            <Text className="text-xs text-gray-500 font-medium">Hastanın analiz sonuçları</Text>
+            <Text className="text-xs text-gray-500 font-medium">Danışanın analiz sonuçları</Text>
           </View>
         </View>
       </View>
@@ -327,7 +328,7 @@ export default function PostureScreen() {
         <View className="flex-1 justify-center items-center p-6">
           <Info size={48} color="#94a3b8" />
           <Text className="mt-4 text-gray-800 text-lg font-bold">Henüz Rapor Yok</Text>
-          <Text className="mt-2 text-gray-500 text-center">Bu hasta için kaydedilmiş bir postür analizi bulunmuyor.</Text>
+          <Text className="mt-2 text-gray-500 text-center">Bu danışan için kaydedilmiş bir postür analizi bulunmuyor.</Text>
         </View>
       ) : (
         <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 40 }}>
@@ -402,6 +403,15 @@ export default function PostureScreen() {
                       </View>
                       
                       <View className="p-4">
+                        {test.snapshotUrl && (
+                          <View className="mb-4 rounded-xl overflow-hidden border border-gray-200 bg-black items-center justify-center">
+                            <Image 
+                              source={{ uri: `${API_URL.replace('/api', '')}/${test.snapshotUrl}` }} 
+                              style={{ width: '100%', height: 200 }} 
+                              resizeMode="contain"
+                            />
+                          </View>
+                        )}
                         {test.measurements.map((m) => (
                           <View key={m.id} className="flex-row justify-between items-center mb-2 last:mb-0">
                             <Text className="text-xs font-medium text-gray-600 flex-1">{formatMetricName(m.metricKey)}</Text>

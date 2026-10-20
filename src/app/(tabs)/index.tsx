@@ -11,6 +11,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuthStore } from '../../store/useAuthStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as WebBrowser from 'expo-web-browser';
 import {
   Check, ChevronRight, Download, Folder, FolderOpen, FolderPlus,
   ImageIcon, FileUp,
@@ -39,6 +40,9 @@ import {
   saveOrShareFile,
 } from '../../lib/mobile-files';
 import { useTheme } from '../../context/ThemeContext';
+import { ClinicQuickActions, ClinicQuickChips } from '../../components/clinic-quick-actions';
+import { AppointmentPicker } from '../../components/appointment-picker';
+import { hasAppointmentPicker, stripAppointmentPicker, type QuickActionKey } from '../../constants/clinic';
 
 const API_URL = 'https://my.cerilas.com/api';
 const API_ORIGIN = API_URL.replace(/\/api$/, '');
@@ -113,6 +117,7 @@ export default function ChatScreen() {
   const [shareLoading, setShareLoading] = useState(false);
   const [shareActive, setShareActive] = useState(false);
   const [shareId, setShareId] = useState<string | null>(null);
+  const [quickBusy, setQuickBusy] = useState<QuickActionKey | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const pickerLock = useRef(false);
   const sidebarAnim = useSharedValue(0);
@@ -200,6 +205,7 @@ export default function ChatScreen() {
       setConversations(prev => [newConv, ...prev]);
       setConversationId(newConv.id);
       setMessages([]);
+      DeviceEventEmitter.emit('showMedicalDisclaimer');
       closeSidebar();
       return newConv.id;
     } catch (e) {
@@ -208,10 +214,35 @@ export default function ChatScreen() {
     }
   }, [token]);
 
+  const runQuickAction = useCallback(async (action: QuickActionKey) => {
+    if (quickBusy || sending) return;
+    setQuickBusy(action);
+    try {
+      let convId = conversationId;
+      if (!convId) {
+        const res = await axios.post(`${API_URL}/conversations`, {}, { headers });
+        const newConv: Conversation = res.data;
+        setConversations(prev => [newConv, ...prev]);
+        setConversationId(newConv.id);
+        convId = newConv.id;
+      }
+      const res = await axios.post(`${API_URL}/conversations/${convId}/quick`, { action }, { headers });
+      const newMessages: Message[] = res.data?.messages ?? [];
+      setMessages(prev => [...prev, ...newMessages]);
+      void fetchConversations();
+    } catch (e) {
+      console.error('quick action error', e);
+      Toast.show({ type: 'error', text1: 'İşlem tamamlanamadı', text2: 'Lütfen bağlantınızı kontrol edip tekrar deneyin.' });
+    } finally {
+      setQuickBusy(null);
+    }
+  }, [quickBusy, sending, conversationId, token, fetchConversations]);
+
   const selectConversation = useCallback(async (conv: Conversation) => {
     setConversationId(conv.id);
     closeSidebar();
     setMessages([]);
+    DeviceEventEmitter.emit('showMedicalDisclaimer');
     await fetchMessages(conv.id);
   }, [fetchMessages]);
 
@@ -224,6 +255,7 @@ export default function ChatScreen() {
       ]);
       if (items.length > 0) {
         setConversationId(items[0].id);
+        DeviceEventEmitter.emit('showMedicalDisclaimer');
         await fetchMessages(items[0].id);
       }
       setLoading(false);
@@ -702,6 +734,10 @@ export default function ChatScreen() {
       clearTimeout(timeoutId);
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
+        if (data.error === 'usage_limit_exceeded' && data.message) {
+          setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, content: data.message } : m));
+          return;
+        }
         throw new Error(data.message || data.error || `Sunucu hatası (${response.status})`);
       }
       if (!response.body) throw new Error('Yanıt akışı başlatılamadı');
@@ -845,12 +881,11 @@ export default function ChatScreen() {
                 <MarkdownMessage
                   apiOrigin={API_ORIGIN}
                   authorization={authorization}
-                  content={item.content}
+                  content={isUser ? item.content : stripAppointmentPicker(item.content)}
                   isStreaming={!isUser && sending && item.id.startsWith('placeholder-')}
                   isUser={isUser}
-                  onLinkPress={(url) => {
-                    Linking.openURL(url).catch(err => console.error("Could not open URL", err));
-                  }}
+                  accentColor={C.brand}
+                  accentLight={C.brandLight}
                   onImagePress={(uri, fileName, mimeType, imageAuthorization) => {
                     setPreviewImage({
                       uri,
@@ -863,6 +898,19 @@ export default function ChatScreen() {
                 />
               )}
             </View>
+          )}
+
+          {!isUser && hasAppointmentPicker(item.content) && !sending && messages[messages.length - 1]?.id === item.id && (
+            <AppointmentPicker<Message>
+              apiUrl={API_URL}
+              authorization={authorization}
+              colors={C}
+              conversationId={conversationId}
+              onBooked={(booked) => {
+                if (booked.length) setMessages(prev => [...prev, ...booked]);
+                void fetchConversations();
+              }}
+            />
           )}
         </View>
       </Animated.View>
@@ -1576,7 +1624,7 @@ export default function ChatScreen() {
               // Welcome screen — matches web WelcomeScreen.tsx
               <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}
+                contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 32 }}
               >
                 <View style={{
                   width: 64, height: 64, borderRadius: 16,
@@ -1597,28 +1645,10 @@ export default function ChatScreen() {
                 <Text style={{ fontSize: 20, fontWeight: '700', color: C.textPrimary, marginBottom: 8, textAlign: 'center' }}>
                   {user?.name ? `Merhaba, ${user.name.split(' ')[0]}` : 'Merhaba!'}
                 </Text>
-                <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: 'center', lineHeight: 21 }}>
-                  Fizyoterapi, rehabilitasyon veya sağlıkla ilgili sorularınızı sormaktan çekinmeyin.
+                <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: 'center', lineHeight: 21, paddingHorizontal: 12 }}>
+                  Randevu, konum ve klinik bilgileri için kliniğin dijital asistanı.
                 </Text>
-                {/* Quick prompts */}
-                {[
-                  'Bel ağrısı için ne yapmalıyım?',
-                  'Diz egzersizleri nelerdir?',
-                  'Boyun tutulması nasıl geçer?',
-                ].map((prompt) => (
-                  <TouchableOpacity
-                    key={prompt}
-                    onPress={() => { setInput(prompt); }}
-                    style={{
-                      marginTop: 10, paddingHorizontal: 14, paddingVertical: 10,
-                      borderWidth: 1, borderColor: C.borderPrimary,
-                      borderRadius: 10, backgroundColor: C.bgSecondary, width: '100%',
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={{ fontSize: 13, color: C.textSecondary }}>{prompt}</Text>
-                  </TouchableOpacity>
-                ))}
+                <ClinicQuickActions colors={C} busyKey={quickBusy} onSelect={(key) => void runQuickAction(key)} />
               </ScrollView>
             ) : (
               <FlatList
@@ -1626,6 +1656,7 @@ export default function ChatScreen() {
                 data={messages}
                 keyExtractor={item => item.id}
                 renderItem={renderMessage}
+                extraData={sending}
                 contentContainerStyle={{ paddingVertical: 8 }}
                 style={{ flex: 1, backgroundColor: C.bgPrimary }}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
@@ -1639,6 +1670,9 @@ export default function ChatScreen() {
               borderTopWidth: 1, borderTopColor: C.borderPrimary,
               backgroundColor: C.bgPrimary,
             }}>
+              {messages.length > 0 && !sending && (
+                <ClinicQuickChips colors={C} busyKey={quickBusy} onSelect={(key) => void runQuickAction(key)} />
+              )}
 
               <PendingAttachments
                 attachments={pendingAttachments}

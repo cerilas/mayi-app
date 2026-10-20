@@ -33,7 +33,7 @@ type GuideSection = {
 const ROLE_META: Record<GuideRole, { label: string; description: string; icon: any }> = {
   physiotherapist: {
     label: "Fizyoterapist",
-    description: "Klinik çalışma, atanmış hastalar ve yapay zekâ",
+    description: "Klinik çalışma, atanmış danışanlar ve yapay zekâ",
     icon: User
   },
   admin: {
@@ -48,12 +48,12 @@ const PERMISSION_ROWS = [
   { capability: "Sohbet modelini seçme", admin: "Kendi sohbeti", physio: "Kendi sohbeti", user: "Kendi sohbeti", patient: "Hayır · genel model" },
   { capability: "Dosya, Web Araması ve Görsel Üret", admin: "Evet", physio: "Evet", user: "Evet", patient: "Evet" },
   { capability: "Kişisel Temel / Ek Talimat", admin: "Evet", physio: "Evet", user: "Evet", patient: "Hayır" },
-  { capability: "Hasta listesini görme", admin: "Tüm hastalar", physio: "Yalnızca atanan", user: "Hayır", patient: "Hayır" },
-  { capability: "Hasta profilini düzenleme", admin: "Tüm hastalar", physio: "Yalnızca atanan", user: "Hayır", patient: "Hayır" },
-  { capability: "Hasta oluşturma / silme / toplu aktarma", admin: "Evet", physio: "Hayır", user: "Hayır", patient: "Hayır" },
+  { capability: "Danışan listesini görme", admin: "Tüm danışanlar", physio: "Yalnızca atanan", user: "Hayır", patient: "Hayır" },
+  { capability: "Danışan profilini düzenleme", admin: "Tüm danışanlar", physio: "Yalnızca atanan", user: "Hayır", patient: "Hayır" },
+  { capability: "Danışan oluşturma / silme / toplu aktarma", admin: "Evet", physio: "Hayır", user: "Hayır", patient: "Hayır" },
   { capability: "Sorumlu atama veya değiştirme", admin: "Evet", physio: "Hayır", user: "Hayır", patient: "Hayır" },
   { capability: "Kullanıcı ve rol yönetimi", admin: "Evet", physio: "Hayır", user: "Hayır", patient: "Hayır" },
-  { capability: "Genel Hasta Talimatı ve hasta modeli", admin: "Global yönetir", physio: "Hayır", user: "Hayır", patient: "Hayır" },
+  { capability: "Genel Danışan Talimatı ve danışan modeli", admin: "Global yönetir", physio: "Hayır", user: "Hayır", patient: "Hayır" },
   { capability: "API, SMS ve rapor ayarları", admin: "Evet", physio: "Hayır", user: "Hayır", patient: "Hayır" },
   { capability: "Sistem istatistikleri", admin: "Evet", physio: "Hayır", user: "Hayır", patient: "Hayır" },
 ] as const;
@@ -71,7 +71,7 @@ const INSTRUCTION_ROWS = [
     key: "base_instruction",
     editor: "Admin, Fizyoterapist, Kullanıcı",
     scope: "Yalnızca kaydeden kişinin sohbetleri",
-    effect: "Asistanın ana kimliğini belirler. Hasta sohbetlerinde okunmaz.",
+    effect: "Asistanın ana kimliğini belirler. Danışan sohbetlerinde okunmaz.",
   },
   {
     name: "Ek Talimatlar",
@@ -81,18 +81,18 @@ const INSTRUCTION_ROWS = [
     effect: "Temel talimata özel kurallar olarak eklenir; ton, format ve çalışma şeklini daraltır.",
   },
   {
-    name: "Genel Hasta Talimatı",
+    name: "Genel Danışan Talimatı",
     key: "patient_system_instruction",
     editor: "Yalnızca Admin",
-    scope: "Sistemdeki tüm hastaların sohbetleri",
-    effect: "Tüm hastalar için iletişim dili, güvenlik sınırı ve klinik genel kuralları belirler.",
+    scope: "Sistemdeki tüm danışanların sohbetleri",
+    effect: "Tüm danışanlar için iletişim dili, güvenlik sınırı ve klinik genel kuralları belirler.",
   },
   {
-    name: "Hasta Profil Bağlamı",
+    name: "Danışan Profil Bağlamı",
     key: "PatientProfile",
-    editor: "Admin; atanmış hasta için Fizyoterapist",
-    scope: "Yalnızca ilgili hastanın sohbetleri",
-    effect: "Ad, yaş, klinik bilgiler, görüş ve video bağlantılarını hastaya özel bağlam yapar.",
+    editor: "Admin; atanmış danışan için Fizyoterapist",
+    scope: "Yalnızca ilgili danışanın sohbetleri",
+    effect: "Ad, yaş, klinik bilgiler, görüş ve video bağlantılarını danışana özel bağlam yapar.",
   },
   {
     name: "Bilgilendirme metni",
@@ -106,16 +106,16 @@ const INSTRUCTION_ROWS = [
 const SECTIONS: GuideSection[] = [
   {
     id: "rol-hiyerarsisi", eyebrow: "Rol mimarisi", title: "Dört rol, üç çalışma alanı",
-    description: "Rollerin sistemdeki yerini, birbirleriyle ilişkisini ve hasta atama hiyerarşisini anlayın.",
+    description: "Rollerin sistemdeki yerini, birbirleriyle ilişkisini ve danışan atama hiyerarşisini anlayın.",
     icon: "H1", audience: "all", duration: "4 rol",
     items: [
-      { title: "Admin · Sistem yöneticisi", detail: "Kullanıcılar, roller, tüm hastalar, global yapay zekâ ayarları, SMS ve raporlama üzerinde en geniş yetkiye sahiptir.", badge: "En geniş yetki" },
-      { title: "Fizyoterapist · Atanmış hasta sorumlusu", detail: "Kendi sohbetlerini yönetir; yalnızca kendisine atanmış hastaları görüp klinik bağlamlarını günceller.", badge: "Atama kapsamlı" },
-      { title: "Kullanıcı · Bağımsız sohbet kullanıcısı", detail: "Hasta profili olmayan standart roldür. Kendi sohbet, model ve kişisel talimatlarını kullanır; hasta yönetemez." },
-      { title: "Hasta · Klinik son kullanıcı", detail: "Kendi profili, Genel Hasta Talimatı ve adminin seçtiği hasta modeliyle sohbet eder.", badge: "Kısıtlı ayarlar" },
+      { title: "Admin · Sistem yöneticisi", detail: "Kullanıcılar, roller, tüm danışanlar, global yapay zekâ ayarları, SMS ve raporlama üzerinde en geniş yetkiye sahiptir.", badge: "En geniş yetki" },
+      { title: "Fizyoterapist · Atanmış danışan sorumlusu", detail: "Kendi sohbetlerini yönetir; yalnızca kendisine atanmış danışanları görüp klinik bağlamlarını günceller.", badge: "Atama kapsamlı" },
+      { title: "Kullanıcı · Bağımsız sohbet kullanıcısı", detail: "Danışan profili olmayan standart roldür. Kendi sohbet, model ve kişisel talimatlarını kullanır; danışan yönetemez." },
+      { title: "Danışan · Klinik son kullanıcı", detail: "Kendi profili, Genel Danışan Talimatı ve adminin seçtiği danışan modeliyle sohbet eder.", badge: "Kısıtlı ayarlar" },
     ],
-    note: { tone: "info", title: "Hiyerarşi kalıtım değildir", text: "Fizyoterapist Admin yetkilerini miras almaz. Kullanıcı da Fizyoterapist ile Hasta arasında bir terfi basamağı değil, ayrı bir sohbet rolüdür." },
-    keywords: ["rol", "hiyerarşi", "admin", "fizyoterapist", "kullanıcı", "hasta", "atama"],
+    note: { tone: "info", title: "Hiyerarşi kalıtım değildir", text: "Fizyoterapist Admin yetkilerini miras almaz. Kullanıcı da Fizyoterapist ile Danışan arasında bir terfi basamağı değil, ayrı bir sohbet rolüdür." },
+    keywords: ["rol", "hiyerarşi", "admin", "fizyoterapist", "kullanıcı", "danışan", "atama"],
   },
   {
     id: "yetki-matrisi", eyebrow: "Yetki tablosu", title: "Hangi rol ne yapabilir?",
@@ -126,10 +126,10 @@ const SECTIONS: GuideSection[] = [
   },
   {
     id: "talimat-mimarisi", eyebrow: "Yapay zekâ davranışı", title: "Talimatlar kimi etkiler?",
-    description: "Kişisel, global ve hastaya özel katmanların farkını ve birleşme sırasını görün.",
+    description: "Kişisel, global ve danışana özel katmanların farkını ve birleşme sırasını görün.",
     icon: "H3", audience: "all", duration: "6 katman",
-    note: { tone: "warning", title: "En kritik ayrım", text: "Temel ve Ek Talimatlar kullanıcıya özeldir. Genel Hasta Talimatı globaldir. Hasta Profil Bağlamı yalnızca tek hastaya özeldir." },
-    keywords: ["temel talimat", "ek talimat", "sistem talimatı", "hasta talimatı", "genel", "kişisel"],
+    note: { tone: "warning", title: "En kritik ayrım", text: "Temel ve Ek Talimatlar kullanıcıya özeldir. Genel Danışan Talimatı globaldir. Danışan Profil Bağlamı yalnızca tek danışana özeldir." },
+    keywords: ["temel talimat", "ek talimat", "sistem talimatı", "danışan talimatı", "genel", "kişisel"],
   },
   {
     id: "baslangic", eyebrow: "Hızlı başlangıç", title: "İlk 10 dakikada sistemi hazırlayın",
@@ -148,33 +148,33 @@ const SECTIONS: GuideSection[] = [
     description: "Daha güvenilir yanıtlar almak için sohbet araçlarını doğru amaçla ve doğru sırada kullanın.",
     icon: "02", audience: "all", duration: "6 özellik",
     items: [
-      { title: "Net bir istek yazın", detail: "Hastanın kişisel verilerini paylaşmadan hedefi, bağlamı ve istediğiniz formatı belirtin.", badge: "Önerilen" },
+      { title: "Net bir istek yazın", detail: "Danışanın kişisel verilerini paylaşmadan hedefi, bağlamı ve istediğiniz formatı belirtin.", badge: "Önerilen" },
       { title: "Dosya ve görsel ekleyin", detail: "PDF, JPG, PNG dosyalarını yükleyebilirsiniz. Dosyanın hangi bölümüyle ilgili değerlendirme istediğinizi belirtin." },
       { title: "Web Araması", detail: "Güncel kılavuz, çalışma veya duyuru ararken kullanın." },
       { title: "Görsel üretin", detail: "Egzersiz anlatımı gibi görseller için pozisyonu ve sade arka plan beklentinizi tarif edin." },
       { title: "Yanıt işlemleri", detail: "Asistan yanıtını sesli dinleyebilir, uzun metni genişletebilirsiniz." },
       { title: "Sohbeti paylaşın", detail: "Paylaş özelliği açıkken oluşan bağlantıyı yetkili kişilerle paylaşın.", badge: "Dikkat" },
     ],
-    note: { tone: "info", title: "İyi komut formülü", text: "Amaç + gerekli bağlam + istediğiniz çıktı biçimi + sınırlar. Örnek: “Aşağıdaki notları hastaya uygun ev egzersizi hatırlatmasına dönüştür; tanı ekleme.”" },
+    note: { tone: "info", title: "İyi komut formülü", text: "Amaç + gerekli bağlam + istediğiniz çıktı biçimi + sınırlar. Örnek: “Aşağıdaki notları danışana uygun ev egzersizi hatırlatmasına dönüştür; tanı ekleme.”" },
     keywords: ["chat", "sohbet", "dosya", "pdf", "görsel", "web arama", "paylaş", "sesli oku"],
   },
   {
     id: "gunluk-akis", eyebrow: "Fizyoterapist", title: "Günlük klinik çalışma akışı",
-    description: "Atanmış hastalarınızı gözden geçirin, klinik bağlamı güncelleyin ve takip iletişimini hazırlayın.",
+    description: "Atanmış danışanlarınızı gözden geçirin, klinik bağlamı güncelleyin ve takip iletişimini hazırlayın.",
     icon: "03", audience: "physiotherapist", duration: "5 adım",
     steps: [
-      { title: "Hasta listenizi açın", detail: "Hastalarım ekranında yalnızca sorumluluğunuzdaki kayıtlar gösterilir." },
-      { title: "Klinik bilgileri doğrulayın", detail: "Yeni seansta hastanın 'Profil' detaylarına girip klinik görüşünüzü güncelleyin." },
+      { title: "Danışan listenizi açın", detail: "Danışanlarım ekranında yalnızca sorumluluğunuzdaki kayıtlar gösterilir." },
+      { title: "Klinik bilgileri doğrulayın", detail: "Yeni seansta danışanın 'Profil' detaylarına girip klinik görüşünüzü güncelleyin." },
       { title: "Sohbet bağlamını ayarlayın", detail: "Sohbet başlatırken '+' menüsünden hastanızı seçerek yapay zekanın hastayı tanımasını sağlayın." },
-      { title: "Egzersiz planı üretin", detail: "Hastanın sınırlarına uygun 3-5 maddelik program isteyin." },
-      { title: "SMS ile iletin", detail: "Yapay zekanın yanıtını hastaya özel SMS olarak gönderin." },
+      { title: "Egzersiz planı üretin", detail: "Danışanın sınırlarına uygun 3-5 maddelik program isteyin." },
+      { title: "SMS ile iletin", detail: "Yapay zekanın yanıtını danışana özel SMS olarak gönderin." },
     ],
-    note: { tone: "success", title: "Yetki sınırı", text: "Fizyoterapist yalnızca kendi hastalarını görebilir. Yeni hasta oluşturma/silme admin tarafından yapılır." },
-    keywords: ["fizyoterapist", "atanmış hasta", "günlük", "klinik", "takip", "sorumlu"],
+    note: { tone: "success", title: "Yetki sınırı", text: "Fizyoterapist yalnızca kendi danışanlarını görebilir. Yeni danışan oluşturma/silme admin tarafından yapılır." },
+    keywords: ["fizyoterapist", "atanmış danışan", "günlük", "klinik", "takip", "sorumlu"],
   },
   {
-    id: "hasta-kaydi", eyebrow: "Fizyoterapist", title: "Hasta bağlamını doğru tutun",
-    description: "Hasta profilindeki alanlar, yapay zekâ yanıtlarının kişiselleştirilmesinde kullanılır.",
+    id: "danışan-kaydi", eyebrow: "Fizyoterapist", title: "Danışan bağlamını doğru tutun",
+    description: "Danışan profilindeki alanlar, yapay zekâ yanıtlarının kişiselleştirilmesinde kullanılır.",
     icon: "04", audience: "physiotherapist", duration: "4 alan",
     items: [
       { title: "Kısa tanıtım", detail: "Başvuru nedeni, etkilenen bölge ve bakım hedefi." },
@@ -183,29 +183,29 @@ const SECTIONS: GuideSection[] = [
       { title: "Egzersiz videoları", detail: "YouTube bağlantılarını ekleyin." },
     ],
     note: { tone: "warning", title: "Kayıt standardı", text: "İyi/kötü gibi belirsiz ifadeler yerine gözlenebilir bilgi kullanın." },
-    keywords: ["hasta profili", "klinik görüş", "uzun detay", "video", "youtube", "bağlam"],
+    keywords: ["danışan profili", "klinik görüş", "uzun detay", "video", "youtube", "bağlam"],
   },
   {
     id: "klinik-komutlar", eyebrow: "Fizyoterapist", title: "Örnek komut şablonu",
     description: "Şablonu kopyalayın, köşeli parantezleri kendi ihtiyacınıza göre düzenleyin.",
     icon: "05", audience: "physiotherapist", duration: "Kopyalanabilir",
-    prompt: "Rolün: Fizyoterapist asistanı.\nAmaç: [seans özeti] hazırla.\nBağlam: [klinik bilgiler]\nHedef kitle: [hasta]\nÇıktı: [format]\nSınırlar: Yeni tanı koyma.",
+    prompt: "Rolün: Fizyoterapist asistanı.\nAmaç: [seans özeti] hazırla.\nBağlam: [klinik bilgiler]\nHedef kitle: [danışan]\nÇıktı: [format]\nSınırlar: Yeni tanı koyma.",
     note: { tone: "info", title: "Web araması", text: "Asistan özetini orijinal kaynağın yerine kullanmayın." },
-    keywords: ["prompt", "komut", "şablon", "seans özeti", "literatür", "hasta bilgilendirme"],
+    keywords: ["prompt", "komut", "şablon", "seans özeti", "literatür", "danışan bilgilendirme"],
   },
   {
-    id: "admin-hasta", eyebrow: "Admin", title: "Hasta hesaplarını yönetin",
-    description: "Tekil veya toplu hasta oluşturun, sorumlu atayın, erişim bilgilerini yönetin.",
+    id: "admin-danışan", eyebrow: "Admin", title: "Danışan hesaplarını yönetin",
+    description: "Tekil veya toplu danışan oluşturun, sorumlu atayın, erişim bilgilerini yönetin.",
     icon: "03", audience: "admin", duration: "6 işlem",
     items: [
-      { title: "Yeni hasta oluşturma", detail: "Ad, e-posta girin ve güçlü bir başlangıç parolası belirleyin." },
+      { title: "Yeni danışan oluşturma", detail: "Ad, e-posta girin ve güçlü bir başlangıç parolası belirleyin." },
       { title: "Sorumlu atama", detail: "Hastayı ilgili fizyoterapiste atayın.", badge: "Yetki" },
-      { title: "Toplu içe aktarma", detail: "Excel ile hastaları ekleyin." },
-      { title: "Dışa aktarma", detail: "Hasta verilerini Excel olarak indirin." },
-      { title: "Parola ve SMS", detail: "Yeni parola üretip SMS ile hastaya iletin." },
+      { title: "Toplu içe aktarma", detail: "Excel ile danışanları ekleyin." },
+      { title: "Dışa aktarma", detail: "Danışan verilerini Excel olarak indirin." },
+      { title: "Parola ve SMS", detail: "Yeni parola üretip SMS ile danışana iletin." },
       { title: "Kayıt silme", detail: "Kimlik doğrulaması sonrası kullanın.", badge: "Geri alınamaz" },
     ],
-    keywords: ["admin", "hasta ekle", "excel", "içe aktar", "dışa aktar", "sil", "sms", "parola"],
+    keywords: ["admin", "danışan ekle", "excel", "içe aktar", "dışa aktar", "sil", "sms", "parola"],
   },
   {
     id: "admin-sistem", eyebrow: "Admin", title: "Sistem ve ayarları yönetin",
@@ -214,12 +214,12 @@ const SECTIONS: GuideSection[] = [
     steps: [
       { title: "Kullanıcı yönetimi", detail: "Kullanıcı oluşturun, admin veya fizyoterapist yetkisi verin." },
       { title: "Kişisel talimatlar", detail: "Kişisel yapay zeka talimatlarını sistem geneli ile karıştırmayın." },
-      { title: "Genel hasta talimatı", detail: "Tüm hastaları etkiler. Kısa ve net kurallar yazın." },
-      { title: "Hasta modeli", detail: "Tüm hastalar için varsayılan yapay zeka modelini seçin." },
+      { title: "Genel danışan talimatı", detail: "Tüm danışanları etkiler. Kısa ve net kurallar yazın." },
+      { title: "Danışan modeli", detail: "Tüm danışanlar için varsayılan yapay zeka modelini seçin." },
       { title: "Entegrasyon ayarları", detail: "API anahtarı ve SMS başlığını yapılandırın." },
     ],
     note: { tone: "warning", title: "Değişiklik yönetimi", text: "Genel değişiklikleri önce test edin." },
-    keywords: ["kullanıcı", "rol", "model", "api", "anahtar", "talimat", "genel hasta", "ayar"],
+    keywords: ["kullanıcı", "rol", "model", "api", "anahtar", "talimat", "genel danışan", "ayar"],
   },
   {
     id: "admin-rapor", eyebrow: "Admin", title: "İstatistikleri izleyin",
@@ -281,16 +281,16 @@ function Accordion({ section }: { section: GuideSection }) {
               <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 2, borderColor: C.brand, alignItems: 'center' }}>
                 <Text style={{ fontSize: 10, color: C.brand, fontWeight: '800', letterSpacing: 1 }}>YÖNETİM KATMANI</Text>
                 <Text style={{ fontSize: 16, fontWeight: '800', color: '#111827', marginTop: 4 }}>Admin</Text>
-                <Text style={{ fontSize: 11, color: '#6b7280', lineHeight: 17, textAlign: 'center', marginTop: 4 }}>Hesap, rol, global ayar ve hasta atamalarını yönetir.</Text>
+                <Text style={{ fontSize: 11, color: '#6b7280', lineHeight: 17, textAlign: 'center', marginTop: 4 }}>Hesap, rol, global ayar ve danışan atamalarını yönetir.</Text>
               </View>
               <Text style={{ textAlign: 'center', color: C.brand, fontSize: 20, marginVertical: 6 }}>↓</Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e5e7eb' }}>
                   <Text style={{ fontSize: 12, fontWeight: '800', color: '#111827', textAlign: 'center' }}>Fizyoterapist</Text>
-                  <Text style={{ fontSize: 10, color: '#6b7280', lineHeight: 15, textAlign: 'center', marginTop: 4 }}>Atanmış hastaların klinik sorumlusu</Text>
+                  <Text style={{ fontSize: 10, color: '#6b7280', lineHeight: 15, textAlign: 'center', marginTop: 4 }}>Atanmış danışanların klinik sorumlusu</Text>
                   <Text style={{ textAlign: 'center', color: C.brand, marginVertical: 4 }}>↓</Text>
                   <View style={{ backgroundColor: `${C.brand}12`, borderRadius: 8, padding: 7 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: C.brand, textAlign: 'center' }}>Atanmış Hastalar</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: C.brand, textAlign: 'center' }}>Atanmış Danışanlar</Text>
                   </View>
                 </View>
                 <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e5e7eb' }}>
@@ -298,11 +298,11 @@ function Accordion({ section }: { section: GuideSection }) {
                   <Text style={{ fontSize: 10, color: '#6b7280', lineHeight: 15, textAlign: 'center', marginTop: 4 }}>Bağımsız kişisel sohbet alanı</Text>
                   <Text style={{ textAlign: 'center', color: '#9ca3af', marginVertical: 4 }}>·</Text>
                   <View style={{ backgroundColor: '#f3f4f6', borderRadius: 8, padding: 7 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#6b7280', textAlign: 'center' }}>Hasta yönetimi yok</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#6b7280', textAlign: 'center' }}>Danışan yönetimi yok</Text>
                   </View>
                 </View>
               </View>
-              <Text style={{ fontSize: 10, color: '#6b7280', lineHeight: 16, textAlign: 'center', marginTop: 10 }}>Hasta bir Admin veya Fizyoterapiste atanabilir. Admin tüm hastaları, Fizyoterapist yalnızca kendisine atananları görür.</Text>
+              <Text style={{ fontSize: 10, color: '#6b7280', lineHeight: 16, textAlign: 'center', marginTop: 10 }}>Danışan bir Admin veya Fizyoterapiste atanabilir. Admin tüm danışanları, Fizyoterapist yalnızca kendisine atananları görür.</Text>
             </View>
           )}
 
@@ -316,7 +316,7 @@ function Accordion({ section }: { section: GuideSection }) {
                       { role: 'Admin', value: row.admin },
                       { role: 'Fizyo', value: row.physio },
                       { role: 'Kullanıcı', value: row.user },
-                      { role: 'Hasta', value: row.patient },
+                      { role: 'Danışan', value: row.patient },
                     ].map(({ role, value }) => {
                       const denied = value.startsWith('Hayır');
                       return (
@@ -360,13 +360,13 @@ function Accordion({ section }: { section: GuideSection }) {
                 <Text style={{ fontSize: 10, color: '#4b5563', lineHeight: 18, marginTop: 6 }}>Tarih-saat → Kişisel Temel Talimat (boşsa varsayılan) → Bilgilendirme → Aynı kişinin Ek Talimatları → Kendi sohbet geçmişi</Text>
               </View>
               <View style={{ backgroundColor: '#fffbeb', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#f59e0b' }}>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#b45309' }}>Hasta sohbeti</Text>
-                <Text style={{ fontSize: 10, color: '#4b5563', lineHeight: 18, marginTop: 6 }}>Tarih-saat → Platform varsayılanı → Bilgilendirme → İlgili Hasta Profili → Genel Hasta Talimatı → Hastanın sohbet geçmişi</Text>
-                <Text style={{ fontSize: 10, color: '#92400e', lineHeight: 16, marginTop: 6, fontWeight: '700' }}>Admin/Fizyoterapist kişisel talimatları hastaya aktarılmaz.</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#b45309' }}>Danışan sohbeti</Text>
+                <Text style={{ fontSize: 10, color: '#4b5563', lineHeight: 18, marginTop: 6 }}>Tarih-saat → Platform varsayılanı → Bilgilendirme → İlgili Danışan Profili → Genel Danışan Talimatı → Danışanın sohbet geçmişi</Text>
+                <Text style={{ fontSize: 10, color: '#92400e', lineHeight: 16, marginTop: 6, fontWeight: '700' }}>Admin/Fizyoterapist kişisel talimatları danışana aktarılmaz.</Text>
               </View>
               <View style={{ backgroundColor: '#f3f4f6', borderRadius: 12, padding: 12 }}>
                 <Text style={{ fontSize: 11, fontWeight: '800', color: '#111827' }}>Global etki yaratan diğer ayarlar</Text>
-                <Text style={{ fontSize: 10, color: '#4b5563', lineHeight: 17, marginTop: 6 }}><Text style={{ fontWeight: '800' }}>Hasta Varsayılan Modeli:</Text> Admin seçer, tüm hastalar kullanır; personeli etkilemez.</Text>
+                <Text style={{ fontSize: 10, color: '#4b5563', lineHeight: 17, marginTop: 6 }}><Text style={{ fontWeight: '800' }}>Danışan Varsayılan Modeli:</Text> Admin seçer, tüm danışanlar kullanır; personeli etkilemez.</Text>
                 <Text style={{ fontSize: 10, color: '#4b5563', lineHeight: 17, marginTop: 4 }}><Text style={{ fontWeight: '800' }}>Gemini API Anahtarı:</Text> Yalnızca Admin kaydeder; en son güncellenen kayıt sistem çağrılarında kullanıldığı için operasyonel etkisi globaldir.</Text>
               </View>
             </View>
