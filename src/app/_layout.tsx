@@ -77,8 +77,14 @@ export default function RootLayout() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
-    if (!token && inAuthGroup) {
-      router.replace('/login');
+    const subRoute = (segments as string[])[1];
+    const isRestrictedTab =
+      inAuthGroup &&
+      subRoute &&
+      subRoute !== 'index';
+
+    if (!token && isRestrictedTab) {
+      router.replace('/(tabs)');
     } else if (token && segments[0] === 'login') {
       router.replace('/(tabs)');
     }

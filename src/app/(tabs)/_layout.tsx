@@ -4,11 +4,12 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function TabLayout() {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const { colors } = useTheme();
+  const isGuest = !token;
   const role = user?.role;
-  const isAdmin = role === 'admin';
-  const isStaff = role === 'admin' || role === 'physiotherapist';
+  const isAdmin = !isGuest && role === 'admin';
+  const isStaff = !isGuest && (role === 'admin' || role === 'physiotherapist');
 
   return (
     <Tabs
@@ -16,12 +17,14 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.brand,
         tabBarInactiveTintColor: '#9ca3af',
-        tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopColor: '#f3f4f6',
-          elevation: 0,
-          shadowOpacity: 0,
-        },
+        tabBarStyle: isGuest
+          ? { display: 'none' }
+          : {
+              backgroundColor: '#ffffff',
+              borderTopColor: '#f3f4f6',
+              elevation: 0,
+              shadowOpacity: 0,
+            },
       }}
     >
       <Tabs.Screen
@@ -60,6 +63,7 @@ export default function TabLayout() {
         options={{
           title: 'Ayarlar',
           tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
+          href: isGuest ? null : '/settings',
         }}
       />
     </Tabs>

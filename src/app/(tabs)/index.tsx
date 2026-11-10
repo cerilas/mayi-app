@@ -8,6 +8,8 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -15,7 +17,7 @@ import * as WebBrowser from 'expo-web-browser';
 import {
   Check, ChevronRight, Download, Folder, FolderOpen, FolderPlus,
   ImageIcon, FileUp,
-  Inbox, LogOut, Menu, MoreHorizontal, Pencil, Plus,
+  Inbox, LogIn, LogOut, Menu, MessageCircle, MoreHorizontal, Pencil, Plus,
   Send, Settings, Sparkles, Trash2, WandSparkles, X, Share2, Bot, Brain, Activity, AlertCircle, Info
 } from 'lucide-react-native';
 import axios from 'axios';
@@ -48,6 +50,9 @@ const API_URL = 'https://my.cerilas.com/api';
 const API_ORIGIN = API_URL.replace(/\/api$/, '');
 // Share link uses the network IP so it opens in real browsers/devices
 const SHARE_ORIGIN = 'https://my.cerilas.com';
+const MAX_GUEST_QUESTIONS = 5;
+const GUEST_QUOTA_KEY = 'guest_questions_used_v1';
+const CLINIC_WHATSAPP_PHONE = '905406502727';
 
 interface PickedUploadAsset {
   file?: Blob;
@@ -83,10 +88,14 @@ interface FolderItem {
 }
 
 export default function ChatScreen() {
+  const router = useRouter();
   const { user, token, logout } = useAuthStore();
+  const isGuest = !token;
   const { assistantIcon } = useSettingsStore();
   const { colors: C } = useTheme();
   const insets = useSafeAreaInsets();
+  const [guestUsedCount, setGuestUsedCount] = useState(0);
+  const guestLimitReached = isGuest && guestUsedCount >= MAX_GUEST_QUESTIONS;
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [aiModels, setAiModels] = useState<AIModel[]>([
     { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
@@ -141,8 +150,50 @@ export default function ChatScreen() {
     opacity: sidebarAnim.value * 0.45,
   }));
 
+  const loadGuestQuota = useCallback(async () => {
+    try {
+      if (Platform.OS === 'web') {
+        const val = localStorage.getItem(GUEST_QUOTA_KEY);
+        setGuestUsedCount(val ? Math.max(0, parseInt(val, 10) || 0) : 0);
+        return;
+      }
+      const val = await SecureStore.getItemAsync(GUEST_QUOTA_KEY);
+      setGuestUsedCount(val ? Math.max(0, parseInt(val, 10) || 0) : 0);
+    } catch {
+      setGuestUsedCount(0);
+    }
+  }, []);
+
+  const saveGuestQuota = useCallback(async (count: number) => {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem(GUEST_QUOTA_KEY, String(count));
+        return;
+      }
+      await SecureStore.setItemAsync(GUEST_QUOTA_KEY, String(count));
+    } catch {}
+  }, []);
+
+  const openClinicWhatsApp = useCallback(async () => {
+    const text = encodeURIComponent(
+      'Merhaba, MY FizioAI uygulamasındaki misafir soru hakkımı tamamladım. Kliniğinizden danışan kaydı ve ek kullanım hakkı hakkında bilgi almak istiyorum.'
+    );
+    const whatsappUrl = `whatsapp://send?phone=${CLINIC_WHATSAPP_PHONE}&text=${text}`;
+    const webUrl = `https://wa.me/${CLINIC_WHATSAPP_PHONE}?text=${text}`;
+    try {
+      const supported = await Linking.canOpenURL(whatsappUrl);
+      if (supported) {
+        await Linking.openURL(whatsappUrl);
+      } else {
+        await Linking.openURL(webUrl);
+      }
+    } catch {
+      await Linking.openURL(webUrl);
+    }
+  }, []);
+
   const fetchModels = useCallback(async () => {
-    if (user?.role === 'patient') return;
+    if (!token || user?.role === 'patient') return;
     try {
       const res = await axios.get(`${API_URL}/models`, { headers });
       if (res.data?.gemini) {
@@ -249,6 +300,15 @@ export default function ChatScreen() {
   useEffect(() => {
     const init = async () => {
       setLoading(true);
+      if (!token) {
+        await loadGuestQuota();
+        setConversations([]);
+        setFolders([]);
+        setConversationId(null);
+        setMessages([]);
+        setLoading(false);
+        return;
+      }
       const [items] = await Promise.all([
         fetchConversations(),
         fetchFolders(),
@@ -257,11 +317,14 @@ export default function ChatScreen() {
         setConversationId(items[0].id);
         DeviceEventEmitter.emit('showMedicalDisclaimer');
         await fetchMessages(items[0].id);
+      } else {
+        setConversationId(null);
+        setMessages([]);
       }
       setLoading(false);
     };
-    init();
-  }, []);
+    void init();
+  }, [token, loadGuestQuota]);
 
   const toggleFolder = (folderId: string) => {
     setOpenFolders((current) => {
@@ -681,6 +744,127 @@ export default function ChatScreen() {
   const sendMessage = async () => {
     const trimmedInput = input.trim();
     if (sending || uploading) return;
+
+    if (isGuest) {
+      if (!trimmedInput || guestUsedCount >= MAX_GUEST_QUESTIONS) return;
+
+      const userInput = trimmedInput;
+      const nextUsed = guestUsedCount + 1;
+      const userMsg: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: userInput,
+        createdAt: new Date().toISOString(),
+        attachments: [],
+      };
+      const placeholderId = 'placeholder-' + Date.now();
+      const placeholderMsg: Message = {
+        id: placeholderId,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date().toISOString(),
+        attachments: [],
+      };
+
+      const historyPayload = [
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: userInput },
+      ];
+
+      setMessages(prev => [...prev, userMsg, placeholderMsg]);
+      setInput('');
+      setSending(true);
+      setGuestUsedCount(nextUsed);
+      void saveGuestQuota(nextUsed);
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90_000);
+
+        const response = await fetch(`${API_URL}/mobile/guest-chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: historyPayload,
+            questionCount: nextUsed,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          if (data.error === 'guest_limit_exceeded') {
+            setGuestUsedCount(MAX_GUEST_QUESTIONS);
+            void saveGuestQuota(MAX_GUEST_QUESTIONS);
+            setMessages(prev => prev.map(m => m.id === placeholderId ? {
+              ...m,
+              content: data.message || 'Misafir olarak tanımlanan 5 soru-cevap hakkınız dolmuştur. Uygulamamız MyFizyoterapi kliniği danışanlarına özeldir. Daha fazla soru hakkı ve kişisel takip için lütfen önce kliniğimize başvurunuz.',
+            } : m));
+            return;
+          }
+          throw new Error(data.message || data.error || `Sunucu hatası (${response.status})`);
+        }
+
+        if (response.body && typeof response.body.getReader === 'function') {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let accumulated = '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            accumulated += decoder.decode(value, { stream: true });
+
+            const errorMatch = accumulated.match(/\n\n__ERROR_B64__([A-Za-z0-9+/=]+)/);
+            if (errorMatch) {
+              try {
+                const binary = atob(errorMatch[1]);
+                const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+                throw new Error(new TextDecoder('utf-8').decode(bytes));
+              } catch (error) {
+                if (error instanceof Error) throw error;
+                throw new Error('Yapay zekâ yanıt oluşturamadı');
+              }
+            }
+
+            const displayText = accumulated
+              .replace(/__KEEPALIVE__/g, '')
+              .replace(/\n\n__(?:TITLE|ERROR)_B64__[A-Za-z0-9+/=]*/g, '');
+            setMessages(prev => prev.map(m => (
+              m.id === placeholderId ? { ...m, content: displayText } : m
+            )));
+          }
+        } else {
+          const accumulated = await response.text();
+          const errorMatch = accumulated.match(/\n\n__ERROR_B64__([A-Za-z0-9+/=]+)/);
+          if (errorMatch) {
+            try {
+              const binary = atob(errorMatch[1]);
+              const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+              throw new Error(new TextDecoder('utf-8').decode(bytes));
+            } catch (error) {
+              if (error instanceof Error) throw error;
+              throw new Error('Yapay zekâ yanıt oluşturamadı');
+            }
+          }
+          const displayText = accumulated
+            .replace(/__KEEPALIVE__/g, '')
+            .replace(/\n\n__(?:TITLE|ERROR)_B64__[A-Za-z0-9+/=]*/g, '');
+          setMessages(prev => prev.map(m => (
+            m.id === placeholderId ? { ...m, content: displayText } : m
+          )));
+        }
+      } catch (error) {
+        console.error('guest sendMessage error', error);
+        setGuestUsedCount(guestUsedCount);
+        void saveGuestQuota(guestUsedCount);
+        setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, content: 'Yanıt alınamadı. Lütfen tekrar deneyin.' } : m));
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
     if (imageMode) {
       await generateImage(trimmedInput);
       return;
@@ -740,15 +924,46 @@ export default function ChatScreen() {
         }
         throw new Error(data.message || data.error || `Sunucu hatası (${response.status})`);
       }
-      if (!response.body) throw new Error('Yanıt akışı başlatılamadı');
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        accumulated += decoder.decode(value, { stream: true });
+      if (response.body && typeof response.body.getReader === 'function') {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          accumulated += decoder.decode(value, { stream: true });
 
+          const titleMatch = accumulated.match(/\n\n__TITLE_B64__([A-Za-z0-9+/=]+)/);
+          if (titleMatch) {
+            try {
+              const binary = atob(titleMatch[1]);
+              const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+              const title = new TextDecoder('utf-8').decode(bytes);
+              setConversations(prev => prev.map(c => c.id === currentConvId ? { ...c, title } : c));
+            } catch {}
+          }
+
+          const errorMatch = accumulated.match(/\n\n__ERROR_B64__([A-Za-z0-9+/=]+)/);
+          if (errorMatch) {
+            try {
+              const binary = atob(errorMatch[1]);
+              const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+              throw new Error(new TextDecoder('utf-8').decode(bytes));
+            } catch (error) {
+              if (error instanceof Error) throw error;
+              throw new Error('Yapay zekâ yanıt oluşturamadı');
+            }
+          }
+
+          const displayText = accumulated
+            .replace(/__KEEPALIVE__/g, '')
+            .replace(/\n\n__(?:TITLE|ERROR)_B64__[A-Za-z0-9+/=]*/g, '');
+          setMessages(prev => prev.map(m => (
+            m.id === placeholderId ? { ...m, content: displayText } : m
+          )));
+        }
+      } else {
+        const accumulated = await response.text();
         const titleMatch = accumulated.match(/\n\n__TITLE_B64__([A-Za-z0-9+/=]+)/);
         if (titleMatch) {
           try {
@@ -1596,17 +1811,46 @@ export default function ChatScreen() {
       {/* Main content */}
       <SafeAreaView style={{ flex: 1, backgroundColor: '#07090f' }} edges={['top']}>
         <AppHeader
-          left={(
+          left={isGuest ? (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: 999,
+            }}>
+              <Text style={{ color: '#e2e8f0', fontSize: 11, fontWeight: '600' }}>
+                Misafir • {Math.max(0, MAX_GUEST_QUESTIONS - guestUsedCount)}/{MAX_GUEST_QUESTIONS} Hak
+              </Text>
+            </View>
+          ) : (
             <TouchableOpacity onPress={openSidebar} style={{ padding: 8 }} accessibilityLabel="Menüyü aç">
               <Menu size={22} color="#ffffff" />
             </TouchableOpacity>
           )}
-          right={(
+          right={isGuest ? (
+            <TouchableOpacity
+              onPress={() => router.push('/login')}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                backgroundColor: C.brand,
+                paddingHorizontal: 11,
+                paddingVertical: 6,
+                borderRadius: 999,
+              }}
+              accessibilityLabel="Giriş yap"
+            >
+              <LogIn size={14} color="#ffffff" />
+              <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '600' }}>Giriş Yap</Text>
+            </TouchableOpacity>
+          ) : (
             <TouchableOpacity onPress={createNewConversation} style={{ padding: 8 }} accessibilityLabel="Yeni sohbet">
               <Plus size={22} color="#ffffff" />
             </TouchableOpacity>
           )}
-
         />
 
         <View style={{ flex: 1, backgroundColor: C.bgPrimary }}>
@@ -1621,35 +1865,194 @@ export default function ChatScreen() {
               keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 60 : 0}
             >
             {messages.length === 0 ? (
-              // Welcome screen — matches web WelcomeScreen.tsx
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 32 }}
-              >
-                <View style={{
-                  width: 64, height: 64, borderRadius: 16,
-                  backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', marginBottom: 20,
-                }}>
-                  {assistantIcon === 'robot' ? (
-                    <Bot color="#fff" size={32} />
-                  ) : assistantIcon === 'brain' ? (
-                    <Brain color="#fff" size={32} />
-                  ) : assistantIcon === 'pulse' ? (
-                    <Activity color="#fff" size={32} />
-                  ) : assistantIcon === 'my-logo' ? (
-                    <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold' }}>MY</Text>
-                  ) : (
-                    <Sparkles color="#fff" size={32} />
-                  )}
-                </View>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: C.textPrimary, marginBottom: 8, textAlign: 'center' }}>
-                  {user?.name ? `Merhaba, ${user.name.split(' ')[0]}` : 'Merhaba!'}
-                </Text>
-                <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: 'center', lineHeight: 21, paddingHorizontal: 12 }}>
-                  Randevu, konum ve klinik bilgileri için kliniğin dijital asistanı.
-                </Text>
-                <ClinicQuickActions colors={C} busyKey={quickBusy} onSelect={(key) => void runQuickAction(key)} />
-              </ScrollView>
+              isGuest ? (
+                <ScrollView
+                  style={{ flex: 1 }}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={{
+                    flexGrow: 1,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingHorizontal: 20,
+                    paddingVertical: 28,
+                  }}
+                >
+                  <View style={{ width: '100%', maxWidth: 440, alignItems: 'center' }}>
+                    <View style={{
+                      width: 60, height: 60, borderRadius: 16,
+                      backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+                    }}>
+                      <Sparkles color="#fff" size={30} />
+                    </View>
+                    <Text style={{ fontSize: 21, fontWeight: '700', color: C.textPrimary, marginBottom: 6, textAlign: 'center' }}>
+                      MY FizioAI'ye Sorun
+                    </Text>
+                    <Text style={{ fontSize: 13.5, color: C.textSecondary, textAlign: 'center', lineHeight: 20, marginBottom: 20, paddingHorizontal: 8 }}>
+                      Üye olmadan veya giriş yapmadan merak ettiğiniz konuları danışabilirsiniz. Misafir kullanıcılar için 5 soru-cevap hakkı tanımlanmıştır.
+                    </Text>
+
+                    {guestLimitReached ? (
+                      <View style={{
+                        width: '100%',
+                        backgroundColor: C.bgSecondary,
+                        borderWidth: 1,
+                        borderColor: C.borderPrimary,
+                        borderRadius: 18,
+                        padding: 18,
+                        alignItems: 'center',
+                      }}>
+                        <Text style={{ fontSize: 16, fontWeight: '700', color: C.textPrimary, marginBottom: 8, textAlign: 'center' }}>
+                          5 Soru-Cevap Misafir Hakkınız Doldu
+                        </Text>
+                        <Text style={{ fontSize: 13, color: C.textSecondary, textAlign: 'center', lineHeight: 19, marginBottom: 16 }}>
+                          MY FizioAI uygulaması MyFizyoterapi & MyFizyoPilates kliniği danışanlarına özeldir. Daha fazla soru hakkı ve kişisel takip için lütfen önce kliniğimize başvurunuz.
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => void openClinicWhatsApp()}
+                          activeOpacity={0.85}
+                          style={{
+                            width: '100%',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            backgroundColor: '#16a34a',
+                            paddingVertical: 13,
+                            paddingHorizontal: 16,
+                            borderRadius: 12,
+                            marginBottom: 10,
+                          }}
+                        >
+                          <MessageCircle size={18} color="#ffffff" />
+                          <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '700' }}>
+                            Daha Fazla Hak İçin Kliniğe Başvur (WhatsApp)
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => router.push('/login')}
+                          activeOpacity={0.8}
+                          style={{
+                            width: '100%',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            borderWidth: 1,
+                            borderColor: C.borderPrimary,
+                            backgroundColor: C.bgPrimary,
+                            paddingVertical: 11,
+                            paddingHorizontal: 16,
+                            borderRadius: 12,
+                          }}
+                        >
+                          <LogIn size={16} color={C.textPrimary} />
+                          <Text style={{ color: C.textPrimary, fontSize: 13, fontWeight: '600' }}>
+                            Mevcut Danışan Girişi Yap
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={{
+                        width: '100%',
+                        backgroundColor: C.bgSecondary,
+                        borderWidth: 1,
+                        borderColor: C.borderPrimary,
+                        borderRadius: 18,
+                        padding: 14,
+                      }}>
+                        <TextInput
+                          style={{
+                            fontSize: 15,
+                            color: C.textPrimary,
+                            minHeight: 88,
+                            maxHeight: 150,
+                            textAlignVertical: 'top',
+                            paddingHorizontal: 6,
+                            paddingVertical: 6,
+                            lineHeight: 21,
+                          }}
+                          placeholder="Danışmak istediğiniz soruyu buraya yazın..."
+                          placeholderTextColor={C.textTertiary}
+                          value={input}
+                          onChangeText={setInput}
+                          multiline
+                          blurOnSubmit={false}
+                        />
+                        <View style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginTop: 10,
+                          paddingTop: 10,
+                          borderTopWidth: 1,
+                          borderTopColor: C.borderPrimary,
+                        }}>
+                          <Text style={{ fontSize: 12, color: C.textTertiary, fontWeight: '500' }}>
+                            Kalan hak: {Math.max(0, MAX_GUEST_QUESTIONS - guestUsedCount)} / {MAX_GUEST_QUESTIONS}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => void sendMessage()}
+                            disabled={!input.trim() || sending}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 6,
+                              backgroundColor: input.trim() && !sending ? C.brand : C.borderPrimary,
+                              paddingHorizontal: 16,
+                              paddingVertical: 10,
+                              borderRadius: 12,
+                              opacity: input.trim() && !sending ? 1 : 0.5,
+                            }}
+                          >
+                            {sending ? (
+                              <ActivityIndicator size="small" color="#ffffff" />
+                            ) : (
+                              <>
+                                <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '600' }}>Soruyu Gönder</Text>
+                                <Send color="#ffffff" size={15} />
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+
+                    <Text style={{ textAlign: 'center', fontSize: 10, color: C.textTertiary, marginTop: 16, marginHorizontal: 12, lineHeight: 14 }}>
+                      UYARI: MY FizioAI tıbbi bir cihaz değildir. Teşhis koyamaz ve tıbbi kararlar için tek kaynak olmamalıdır. Lütfen hekiminize danışınız.
+                    </Text>
+                  </View>
+                </ScrollView>
+              ) : (
+                // Welcome screen — matches web WelcomeScreen.tsx
+                <ScrollView
+                  style={{ flex: 1 }}
+                  contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 32 }}
+                >
+                  <View style={{
+                    width: 64, height: 64, borderRadius: 16,
+                    backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+                  }}>
+                    {assistantIcon === 'robot' ? (
+                      <Bot color="#fff" size={32} />
+                    ) : assistantIcon === 'brain' ? (
+                      <Brain color="#fff" size={32} />
+                    ) : assistantIcon === 'pulse' ? (
+                      <Activity color="#fff" size={32} />
+                    ) : assistantIcon === 'my-logo' ? (
+                      <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold' }}>MY</Text>
+                    ) : (
+                      <Sparkles color="#fff" size={32} />
+                    )}
+                  </View>
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: C.textPrimary, marginBottom: 8, textAlign: 'center' }}>
+                    {user?.name ? `Merhaba, ${user.name.split(' ')[0]}` : 'Merhaba!'}
+                  </Text>
+                  <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: 'center', lineHeight: 21, paddingHorizontal: 12 }}>
+                    Randevu, konum ve klinik bilgileri için kliniğin dijital asistanı.
+                  </Text>
+                  <ClinicQuickActions colors={C} busyKey={quickBusy} onSelect={(key) => void runQuickAction(key)} />
+                </ScrollView>
+              )
             ) : (
               <FlatList
                 ref={flatListRef}
@@ -1665,115 +2068,184 @@ export default function ChatScreen() {
               />
             )}
 
-            <View style={{
-              paddingHorizontal: 12, paddingTop: 10, paddingBottom: insets.bottom + 10,
-              borderTopWidth: 1, borderTopColor: C.borderPrimary,
-              backgroundColor: C.bgPrimary,
-            }}>
-              {messages.length > 0 && !sending && (
-                <ClinicQuickChips colors={C} busyKey={quickBusy} onSelect={(key) => void runQuickAction(key)} />
-              )}
-
-              <PendingAttachments
-                attachments={pendingAttachments}
-                onRemove={id => setPendingAttachments(current => (
-                  current.filter(attachment => attachment.id !== id)
-                ))}
-              />
-
-              {uploadError !== '' && (
-                <Text style={{ color: '#dc2626', fontSize: 11, marginBottom: 7 }}>
-                  {uploadError}
-                </Text>
-              )}
-
-              {imageMode && (
-                <View style={{
-                  alignItems: 'center', alignSelf: 'flex-start',
-                  backgroundColor: '#f3e8ff', borderRadius: 999,
-                  flexDirection: 'row', gap: 5, marginBottom: 8,
-                  paddingHorizontal: 9, paddingVertical: 5,
-                }}>
-                  <WandSparkles size={13} color="#7e22ce" />
-                  <Text style={{ color: '#7e22ce', fontSize: 11, fontWeight: '600' }}>Görsel Üret</Text>
-                  <TouchableOpacity onPress={() => setImageMode(false)} hitSlop={8}>
-                    <X size={13} color="#7e22ce" />
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
-                <TouchableOpacity
-                  onPress={() => setToolsOpen(true)}
-                  disabled={sending || uploading}
-                  style={{
-                    width: 42, height: 42, borderRadius: 13,
-                    backgroundColor: imageMode || pendingAttachments.length > 0 ? C.brandLight : C.bgSecondary,
-                    alignItems: 'center', justifyContent: 'center',
-                    opacity: sending ? 0.4 : 1,
-                  }}
-                  accessibilityLabel="Dosya ve görsel araçlarını aç"
-                >
-                  {uploading
-                    ? <ActivityIndicator size="small" color={C.brand} />
-                    : <Plus color={imageMode || pendingAttachments.length > 0 ? C.brand : C.textTertiary} size={21} />}
-                </TouchableOpacity>
-
-                <View style={{
-                  flex: 1,
-                  flexDirection: 'row', alignItems: 'flex-end',
-                  borderWidth: 1,
-                  borderColor: imageMode ? '#c084fc' : C.borderPrimary,
-                  borderRadius: 16, overflow: 'hidden',
-                  backgroundColor: C.bgPrimary,
-                }}>
-                  <TextInput
-                    style={{
-                      flex: 1, paddingHorizontal: 16,
-                      paddingTop: Platform.OS === 'ios' ? 14 : 12, 
-                      paddingBottom: Platform.OS === 'ios' ? 14 : 12,
-                      fontSize: 14, color: C.textPrimary,
-                      maxHeight: 84, lineHeight: 19.6,
-                      minHeight: 48, textAlignVertical: 'center'
-                    }}
-                    placeholder={imageMode ? 'Görseli açıklayın...' : 'Mesaj yazın...'}
-                    placeholderTextColor={C.textTertiary}
-                    value={input}
-                    onChangeText={setInput}
-                    multiline
-                    onSubmitEditing={() => void sendMessage()}
-                    blurOnSubmit={false}
-                  />
-                  <TouchableOpacity
-                    onPress={() => void sendMessage()}
-                    disabled={!canSubmit || sending || uploading}
-                    style={{
-                      margin: 6,
-                      width: 36, height: 36, borderRadius: 12,
-                      backgroundColor: sending
-                        ? C.brand
-                        : canSubmit && !uploading
-                          ? (imageMode ? '#7e22ce' : C.brand)
-                          : C.bgSecondary,
-                      alignItems: 'center', justifyContent: 'center',
-                      opacity: sending || (canSubmit && !uploading) ? 1 : 0.35,
-                    }}
-                    accessibilityLabel={imageMode ? 'Görsel oluştur' : 'Mesaj gönder'}
-                  >
-                    {sending ? (
-                      <ActivityIndicator size="small" color="#ffffff" />
-                    ) : imageMode ? (
-                      <WandSparkles color="#ffffff" size={17} />
-                    ) : (
-                      <Send color="#ffffff" size={16} style={{ marginLeft: 1 }} />
+            {(!isGuest || messages.length > 0) && (
+              <View style={{
+                paddingHorizontal: 12, paddingTop: 10, paddingBottom: insets.bottom + 10,
+                borderTopWidth: 1, borderTopColor: C.borderPrimary,
+                backgroundColor: C.bgPrimary,
+              }}>
+                {isGuest && guestLimitReached && !sending ? (
+                  <View style={{
+                    backgroundColor: C.bgSecondary,
+                    borderWidth: 1,
+                    borderColor: C.borderPrimary,
+                    borderRadius: 16,
+                    padding: 14,
+                    alignItems: 'center',
+                  }}>
+                    <Text style={{ fontSize: 14.5, fontWeight: '700', color: C.textPrimary, marginBottom: 4, textAlign: 'center' }}>
+                      5 Soru-Cevap Misafir Hakkınız Doldu
+                    </Text>
+                    <Text style={{ fontSize: 12.5, color: C.textSecondary, textAlign: 'center', lineHeight: 18, marginBottom: 12 }}>
+                      Uygulamamız MyFizyoterapi & MyFizyoPilates kliniği danışanlarına özeldir. Daha fazla soru hakkı için lütfen önce kliniğimize başvurunuz.
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => void openClinicWhatsApp()}
+                      activeOpacity={0.85}
+                      style={{
+                        width: '100%',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        backgroundColor: '#16a34a',
+                        paddingVertical: 12,
+                        paddingHorizontal: 14,
+                        borderRadius: 12,
+                        marginBottom: 8,
+                      }}
+                    >
+                      <MessageCircle size={17} color="#ffffff" />
+                      <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '700' }}>
+                        Daha Fazla Hak İçin Kliniğe Başvur (WhatsApp)
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => router.push('/login')}
+                      activeOpacity={0.8}
+                      style={{
+                        width: '100%',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        borderWidth: 1,
+                        borderColor: C.borderPrimary,
+                        backgroundColor: C.bgPrimary,
+                        paddingVertical: 9,
+                        paddingHorizontal: 14,
+                        borderRadius: 10,
+                      }}
+                    >
+                      <LogIn size={15} color={C.textPrimary} />
+                      <Text style={{ color: C.textPrimary, fontSize: 12.5, fontWeight: '600' }}>
+                        Mevcut Danışan Girişi Yap
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <>
+                    {!isGuest && messages.length > 0 && !sending && (
+                      <ClinicQuickChips colors={C} busyKey={quickBusy} onSelect={(key) => void runQuickAction(key)} />
                     )}
-                  </TouchableOpacity>
-                </View>
+
+                    {!isGuest && (
+                      <PendingAttachments
+                        attachments={pendingAttachments}
+                        onRemove={id => setPendingAttachments(current => (
+                          current.filter(attachment => attachment.id !== id)
+                        ))}
+                      />
+                    )}
+
+                    {uploadError !== '' && (
+                      <Text style={{ color: '#dc2626', fontSize: 11, marginBottom: 7 }}>
+                        {uploadError}
+                      </Text>
+                    )}
+
+                    {!isGuest && imageMode && (
+                      <View style={{
+                        alignItems: 'center', alignSelf: 'flex-start',
+                        backgroundColor: '#f3e8ff', borderRadius: 999,
+                        flexDirection: 'row', gap: 5, marginBottom: 8,
+                        paddingHorizontal: 9, paddingVertical: 5,
+                      }}>
+                        <WandSparkles size={13} color="#7e22ce" />
+                        <Text style={{ color: '#7e22ce', fontSize: 11, fontWeight: '600' }}>Görsel Üret</Text>
+                        <TouchableOpacity onPress={() => setImageMode(false)} hitSlop={8}>
+                          <X size={13} color="#7e22ce" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+                      {!isGuest && (
+                        <TouchableOpacity
+                          onPress={() => setToolsOpen(true)}
+                          disabled={sending || uploading}
+                          style={{
+                            width: 42, height: 42, borderRadius: 13,
+                            backgroundColor: imageMode || pendingAttachments.length > 0 ? C.brandLight : C.bgSecondary,
+                            alignItems: 'center', justifyContent: 'center',
+                            opacity: sending ? 0.4 : 1,
+                          }}
+                          accessibilityLabel="Dosya ve görsel araçlarını aç"
+                        >
+                          {uploading
+                            ? <ActivityIndicator size="small" color={C.brand} />
+                            : <Plus color={imageMode || pendingAttachments.length > 0 ? C.brand : C.textTertiary} size={21} />}
+                        </TouchableOpacity>
+                      )}
+
+                      <View style={{
+                        flex: 1,
+                        flexDirection: 'row', alignItems: 'flex-end',
+                        borderWidth: 1,
+                        borderColor: imageMode ? '#c084fc' : C.borderPrimary,
+                        borderRadius: 16, overflow: 'hidden',
+                        backgroundColor: C.bgPrimary,
+                      }}>
+                        <TextInput
+                          style={{
+                            flex: 1, paddingHorizontal: 16,
+                            paddingTop: Platform.OS === 'ios' ? 14 : 12, 
+                            paddingBottom: Platform.OS === 'ios' ? 14 : 12,
+                            fontSize: 14, color: C.textPrimary,
+                            maxHeight: 84, lineHeight: 19.6,
+                            minHeight: 48, textAlignVertical: 'center'
+                          }}
+                          placeholder={imageMode ? 'Görseli açıklayın...' : isGuest ? `Sorunuzu yazın (${Math.max(0, MAX_GUEST_QUESTIONS - guestUsedCount)} hak kaldı)...` : 'Mesaj yazın...'}
+                          placeholderTextColor={C.textTertiary}
+                          value={input}
+                          onChangeText={setInput}
+                          multiline
+                          onSubmitEditing={() => void sendMessage()}
+                          blurOnSubmit={false}
+                        />
+                        <TouchableOpacity
+                          onPress={() => void sendMessage()}
+                          disabled={!canSubmit || sending || uploading}
+                          style={{
+                            margin: 6,
+                            width: 36, height: 36, borderRadius: 12,
+                            backgroundColor: sending
+                              ? C.brand
+                              : canSubmit && !uploading
+                                ? (imageMode ? '#7e22ce' : C.brand)
+                                : C.bgSecondary,
+                            alignItems: 'center', justifyContent: 'center',
+                            opacity: sending || (canSubmit && !uploading) ? 1 : 0.35,
+                          }}
+                          accessibilityLabel={imageMode ? 'Görsel oluştur' : 'Mesaj gönder'}
+                        >
+                          {sending ? (
+                            <ActivityIndicator size="small" color="#ffffff" />
+                          ) : imageMode ? (
+                            <WandSparkles color="#ffffff" size={17} />
+                          ) : (
+                            <Send color="#ffffff" size={16} style={{ marginLeft: 1 }} />
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </>
+                )}
+                <Text style={{ textAlign: 'center', fontSize: 10, color: C.textTertiary, marginTop: 8, marginHorizontal: 16, lineHeight: 14 }}>
+                  UYARI: MY FizioAI tıbbi bir cihaz değildir. Teşhis koyamaz ve tıbbi kararlar için tek kaynak olmamalıdır. Lütfen hekiminize danışınız.
+                </Text>
               </View>
-              <Text style={{ textAlign: 'center', fontSize: 10, color: C.textTertiary, marginTop: 8, marginHorizontal: 16, lineHeight: 14 }}>
-                UYARI: MY FizioAI tıbbi bir cihaz değildir. Teşhis koyamaz ve tıbbi kararlar için tek kaynak olmamalıdır. Lütfen hekiminize danışınız.
-              </Text>
-            </View>
+            )}
             </KeyboardAvoidingView>
           )}
         </View>

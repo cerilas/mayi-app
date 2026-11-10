@@ -367,9 +367,28 @@ export default function LoginScreen() {
                   )}
                 </SpringButton>
 
+                <TouchableOpacity
+                  onPress={() => router.replace('/(tabs)')}
+                  activeOpacity={0.75}
+                  style={{
+                    marginTop: 12,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.14)',
+                    backgroundColor: 'rgba(255,255,255,0.04)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text style={{ color: 'rgba(255,255,255,0.85)', fontWeight: '600', fontSize: 13 }}>
+                    Misafir Olarak Soru Sor (5 Ücretsiz Hak)
+                  </Text>
+                </TouchableOpacity>
+
                 <Text style={{
                   textAlign: 'center', fontSize: 11,
-                  color: 'rgba(255,255,255,0.25)', marginTop: 20,
+                  color: 'rgba(255,255,255,0.25)', marginTop: 16,
                 }}>
                   Giriş bilgilerinizi kurumunuzdan veya sistem yöneticinizden alınız.
                 </Text>
