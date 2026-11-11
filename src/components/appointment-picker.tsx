@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import axios from 'axios';
-import { CalendarDays, CheckCircle2, Clock, MessageCircle } from 'lucide-react-native';
+import { CalendarDays, CheckCircle2, Clock } from 'lucide-react-native';
+import { WhatsAppIcon } from './whatsapp-icon';
 import type { ColorTokens } from '../lib/theme';
 
 const CLINIC_WHATSAPP_PHONE = '905406502727';
@@ -126,7 +127,7 @@ export function AppointmentPicker<TMessage>({ apiUrl, authorization, colors: C, 
               paddingHorizontal: 14,
             }}
           >
-            <MessageCircle size={16} color="#ffffff" />
+            <WhatsAppIcon size={16} color="#ffffff" />
             <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '700' }}>
               WhatsApp'tan Randevu Al (0540 650 27 27)
             </Text>
@@ -214,7 +215,7 @@ export function AppointmentPicker<TMessage>({ apiUrl, authorization, colors: C, 
                   paddingHorizontal: 12,
                 }}
               >
-                <MessageCircle size={15} color="#ffffff" />
+                <WhatsAppIcon size={15} color="#ffffff" />
                 <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '700' }}>
                   WhatsApp'tan Ulaşın (0540 650 27 27)
                 </Text>

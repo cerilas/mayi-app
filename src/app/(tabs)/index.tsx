@@ -44,6 +44,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { ClinicQuickActions, ClinicQuickChips } from '../../components/clinic-quick-actions';
 import { AppointmentPicker } from '../../components/appointment-picker';
+import { WhatsAppIcon } from '../../components/whatsapp-icon';
 import { hasAppointmentPicker, stripAppointmentPicker, type QuickActionKey } from '../../constants/clinic';
 
 const API_URL = 'https://my.cerilas.com/api';
@@ -1130,7 +1131,7 @@ export default function ChatScreen() {
                       paddingHorizontal: 14,
                     }}
                   >
-                    <MessageCircle size={16} color="#ffffff" />
+                    <WhatsAppIcon size={16} color="#ffffff" />
                     <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '700' }}>
                       WhatsApp'tan Randevu Al (0540 650 27 27)
                     </Text>
@@ -1904,7 +1905,7 @@ export default function ChatScreen() {
                 }}
                 accessibilityLabel="WhatsApp hattına ulaş"
               >
-                <MessageCircle size={13} color="#ffffff" />
+                <WhatsAppIcon size={14} color="#ffffff" />
                 <Text numberOfLines={1} style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '700' }}>WhatsApp</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -2003,7 +2004,7 @@ export default function ChatScreen() {
                             marginBottom: 10,
                           }}
                         >
-                          <MessageCircle size={18} color="#ffffff" />
+                          <WhatsAppIcon size={18} color="#ffffff" />
                           <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '700' }}>
                             Daha Fazla Hak İçin Kliniğe Başvur (WhatsApp)
                           </Text>
@@ -2185,7 +2186,7 @@ export default function ChatScreen() {
                         marginBottom: 8,
                       }}
                     >
-                      <MessageCircle size={17} color="#ffffff" />
+                      <WhatsAppIcon size={17} color="#ffffff" />
                       <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '700' }}>
                         Daha Fazla Hak İçin Kliniğe Başvur (WhatsApp)
                       </Text>
