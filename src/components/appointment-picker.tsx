@@ -128,8 +128,8 @@ export function AppointmentPicker<TMessage>({ apiUrl, authorization, colors: C, 
             }}
           >
             <WhatsAppIcon size={16} color="#ffffff" />
-            <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '700' }}>
-              WhatsApp'tan Randevu Al (0540 650 27 27)
+            <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '700' }}>
+              WhatsApp'tan Randevu Al
             </Text>
           </TouchableOpacity>
         </View>
@@ -216,8 +216,8 @@ export function AppointmentPicker<TMessage>({ apiUrl, authorization, colors: C, 
                 }}
               >
                 <WhatsAppIcon size={15} color="#ffffff" />
-                <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '700' }}>
-                  WhatsApp'tan Ulaşın (0540 650 27 27)
+                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '700' }}>
+                  WhatsApp'tan Ulaşın
                 </Text>
               </TouchableOpacity>
             </View>

@@ -1132,8 +1132,8 @@ export default function ChatScreen() {
                     }}
                   >
                     <WhatsAppIcon size={16} color="#ffffff" />
-                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '700' }}>
-                      WhatsApp'tan Randevu Al (0540 650 27 27)
+                    <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '700' }}>
+                      WhatsApp'tan Randevu Al
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -2000,7 +2000,7 @@ export default function ChatScreen() {
                         >
                           <WhatsAppIcon size={18} color="#ffffff" />
                           <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '700' }}>
-                            Daha Fazla Hak İçin Kliniğe Başvur (WhatsApp)
+                            WhatsApp'tan Kliniğe Ulaş
                           </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -2182,7 +2182,7 @@ export default function ChatScreen() {
                     >
                       <WhatsAppIcon size={17} color="#ffffff" />
                       <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '700' }}>
-                        Daha Fazla Hak İçin Kliniğe Başvur (WhatsApp)
+                        WhatsApp'tan Kliniğe Ulaş
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
