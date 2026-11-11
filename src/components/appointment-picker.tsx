@@ -1,8 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import axios from 'axios';
-import { CalendarDays, CheckCircle2, Clock } from 'lucide-react-native';
+import { CalendarDays, CheckCircle2, Clock, MessageCircle } from 'lucide-react-native';
 import type { ColorTokens } from '../lib/theme';
+
+const CLINIC_WHATSAPP_PHONE = '905406502727';
+
+async function openAppointmentWhatsApp() {
+  const text = encodeURIComponent('Merhaba, MY FizioAI uygulaması üzerinden kliniğinizden randevu almak istiyorum.');
+  const whatsappUrl = `whatsapp://send?phone=${CLINIC_WHATSAPP_PHONE}&text=${text}`;
+  const webUrl = `https://wa.me/${CLINIC_WHATSAPP_PHONE}?text=${text}`;
+  try {
+    const supported = await Linking.canOpenURL(whatsappUrl);
+    await Linking.openURL(supported ? whatsappUrl : webUrl);
+  } catch {
+    await Linking.openURL(webUrl);
+  }
+}
 
 interface SlotInfo { time: string; available: boolean }
 interface DayAvailability { date: string; weekday: string; label: string; slots: SlotInfo[] }
@@ -36,7 +50,7 @@ export function AppointmentPicker<TMessage>({ apiUrl, authorization, colors: C, 
       setDays(nextDays);
       setSelectedDate(current => (current && nextDays.some(d => d.date === current) ? current : nextDays[0]?.date ?? null));
     } catch {
-      setError('Uygun saatler alınamadı. Lütfen tekrar deneyin.');
+      setError('Uygun gün ve saatler alınamadı. Randevu için 0540 650 27 27 numaralı WhatsApp hattımızdan bize ulaşabilirsiniz.');
     } finally {
       setLoading(false);
     }
@@ -94,9 +108,30 @@ export function AppointmentPicker<TMessage>({ apiUrl, authorization, colors: C, 
           <ActivityIndicator color={C.brand} />
         </View>
       ) : days.length === 0 ? (
-        <Text style={{ paddingHorizontal: 14, paddingBottom: 14, fontSize: 12.5, color: C.textSecondary }}>
-          {error || 'Önümüzdeki günlerde boş saat kalmadı. Lütfen kliniğimizi arayın.'}
-        </Text>
+        <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
+          <Text style={{ fontSize: 12.5, color: C.textSecondary, lineHeight: 18, marginBottom: 10 }}>
+            {error || 'Önümüzdeki günlerde uygun saat bulunamadı. Randevu için doğrudan 0540 650 27 27 numaralı WhatsApp hattımızdan bize ulaşabilirsiniz.'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => void openAppointmentWhatsApp()}
+            activeOpacity={0.85}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              backgroundColor: '#16a34a',
+              borderRadius: 12,
+              paddingVertical: 11,
+              paddingHorizontal: 14,
+            }}
+          >
+            <MessageCircle size={16} color="#ffffff" />
+            <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '700' }}>
+              WhatsApp'tan Randevu Al (0540 650 27 27)
+            </Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 8 }}>
@@ -161,7 +196,30 @@ export function AppointmentPicker<TMessage>({ apiUrl, authorization, colors: C, 
           )}
 
           {error !== '' && (
-            <Text style={{ paddingHorizontal: 14, paddingTop: 10, fontSize: 12, color: '#dc2626' }}>{error}</Text>
+            <View style={{ paddingHorizontal: 14, paddingTop: 10 }}>
+              <Text style={{ fontSize: 12, color: '#dc2626', marginBottom: 8 }}>
+                {error} Dilerseniz 0540 650 27 27 numaralı WhatsApp hattımızdan da bize ulaşabilirsiniz.
+              </Text>
+              <TouchableOpacity
+                onPress={() => void openAppointmentWhatsApp()}
+                activeOpacity={0.85}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  backgroundColor: '#16a34a',
+                  borderRadius: 10,
+                  paddingVertical: 9,
+                  paddingHorizontal: 12,
+                }}
+              >
+                <MessageCircle size={15} color="#ffffff" />
+                <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '700' }}>
+                  WhatsApp'tan Ulaşın (0540 650 27 27)
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           <View style={{ padding: 14 }}>

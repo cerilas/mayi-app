@@ -174,8 +174,9 @@ export default function ChatScreen() {
     } catch {}
   }, []);
 
-  const openClinicWhatsApp = useCallback(async () => {
+  const openClinicWhatsApp = useCallback(async (customMessage?: string) => {
     const text = encodeURIComponent(
+      customMessage ||
       'Merhaba, MY FizioAI uygulamasındaki misafir soru hakkımı tamamladım. Kliniğinizden danışan kaydı ve ek kullanım hakkı hakkında bilgi almak istiyorum.'
     );
     const whatsappUrl = `whatsapp://send?phone=${CLINIC_WHATSAPP_PHONE}&text=${text}`;
@@ -1103,17 +1104,72 @@ export default function ChatScreen() {
             </View>
           )}
 
-          {!isUser && hasAppointmentPicker(item.content) && !sending && messages[messages.length - 1]?.id === item.id && (
-            <AppointmentPicker<Message>
-              apiUrl={API_URL}
-              authorization={authorization}
-              colors={C}
-              conversationId={conversationId}
-              onBooked={(booked) => {
-                if (booked.length) setMessages(prev => [...prev, ...booked]);
-                void fetchConversations();
-              }}
-            />
+          {!isUser && !sending && messages[messages.length - 1]?.id === item.id && (
+            isGuest ? (
+              (hasAppointmentPicker(item.content) || /randevu|0540\s*650\s*27\s*27|wa\.me\/905406502727/i.test(item.content)) ? (
+                <View style={{
+                  marginTop: 10,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: C.borderPrimary,
+                  backgroundColor: C.bgSecondary,
+                  padding: 12,
+                  gap: 8,
+                }}>
+                  <TouchableOpacity
+                    onPress={() => void openClinicWhatsApp('Merhaba, MY FizioAI uygulaması üzerinden kliniğinizden randevu almak istiyorum.')}
+                    activeOpacity={0.85}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      backgroundColor: '#16a34a',
+                      borderRadius: 12,
+                      paddingVertical: 11,
+                      paddingHorizontal: 14,
+                    }}
+                  >
+                    <MessageCircle size={16} color="#ffffff" />
+                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '700' }}>
+                      WhatsApp'tan Randevu Al (0540 650 27 27)
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => router.push('/login')}
+                    activeOpacity={0.8}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      borderWidth: 1,
+                      borderColor: C.borderPrimary,
+                      backgroundColor: C.bgPrimary,
+                      borderRadius: 10,
+                      paddingVertical: 9,
+                      paddingHorizontal: 12,
+                    }}
+                  >
+                    <LogIn size={14} color={C.textPrimary} />
+                    <Text style={{ color: C.textPrimary, fontSize: 12, fontWeight: '600' }}>
+                      Kayıtlı Danışan Girişi Yap
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null
+            ) : hasAppointmentPicker(item.content) ? (
+              <AppointmentPicker<Message>
+                apiUrl={API_URL}
+                authorization={authorization}
+                colors={C}
+                conversationId={conversationId}
+                onBooked={(booked) => {
+                  if (booked.length) setMessages(prev => [...prev, ...booked]);
+                  void fetchConversations();
+                }}
+              />
+            ) : null
           )}
         </View>
       </Animated.View>
@@ -1799,7 +1855,7 @@ export default function ChatScreen() {
       {/* Main content */}
       <SafeAreaView style={{ flex: 1, backgroundColor: '#07090f' }} edges={['top']}>
         <AppHeader
-          sideWidth={isGuest ? 96 : 48}
+          sideWidth={isGuest ? 72 : 48}
           left={isGuest ? (
             <View
               style={{
@@ -1832,24 +1888,44 @@ export default function ChatScreen() {
             </TouchableOpacity>
           )}
           right={isGuest ? (
-            <TouchableOpacity
-              onPress={() => router.push('/login')}
-              activeOpacity={0.8}
-              hitSlop={6}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 5,
-                height: 32,
-                paddingHorizontal: 12,
-                borderRadius: 16,
-                backgroundColor: C.brand,
-              }}
-              accessibilityLabel="Giriş yap"
-            >
-              <LogIn size={14} color="#ffffff" />
-              <Text numberOfLines={1} style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>Giriş</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity
+                onPress={() => void openClinicWhatsApp('Merhaba, MY FizioAI uygulaması üzerinden kliniğinizle iletişime geçmek istiyorum.')}
+                activeOpacity={0.8}
+                hitSlop={6}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  height: 32,
+                  paddingHorizontal: 10,
+                  borderRadius: 16,
+                  backgroundColor: '#16a34a',
+                }}
+                accessibilityLabel="WhatsApp hattına ulaş"
+              >
+                <MessageCircle size={13} color="#ffffff" />
+                <Text numberOfLines={1} style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '700' }}>WhatsApp</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push('/login')}
+                activeOpacity={0.8}
+                hitSlop={6}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  height: 32,
+                  paddingHorizontal: 10,
+                  borderRadius: 16,
+                  backgroundColor: C.brand,
+                }}
+                accessibilityLabel="Giriş yap"
+              >
+                <LogIn size={13} color="#ffffff" />
+                <Text numberOfLines={1} style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '700' }}>Giriş</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <TouchableOpacity onPress={createNewConversation} style={{ padding: 8 }} accessibilityLabel="Yeni sohbet">
               <Plus size={22} color="#ffffff" />

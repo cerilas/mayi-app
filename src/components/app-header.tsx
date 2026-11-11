@@ -29,18 +29,18 @@ export function AppHeader({ left, right, center, sideWidth = 48 }: AppHeaderProp
         paddingHorizontal: 8,
       }}
     >
-      {/* Left slot — fixed width so center can be truly centred */}
-      <View style={{ width: sideWidth, alignItems: 'flex-start', justifyContent: 'center' }}>
+      {/* Left slot */}
+      <View style={{ minWidth: sideWidth, flexShrink: 0, alignItems: 'flex-start', justifyContent: 'center' }}>
         {left}
       </View>
 
-      {/* Center slot — fills all remaining space */}
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        {center ? center : <BrandLogo size={38} />}
+      {/* Center slot — fills remaining space */}
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 }}>
+        {center ? center : <BrandLogo size={36} />}
       </View>
 
-      {/* Right slot — fixed width */}
-      <View style={{ width: sideWidth, alignItems: 'flex-end', justifyContent: 'center' }}>
+      {/* Right slot */}
+      <View style={{ minWidth: sideWidth, flexShrink: 0, alignItems: 'flex-end', justifyContent: 'center' }}>
         {right}
       </View>
     </View>
