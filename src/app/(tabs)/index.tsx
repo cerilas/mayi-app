@@ -1856,31 +1856,27 @@ export default function ChatScreen() {
       {/* Main content */}
       <SafeAreaView style={{ flex: 1, backgroundColor: '#07090f' }} edges={['top']}>
         <AppHeader
-          sideWidth={isGuest ? 72 : 48}
           left={isGuest ? (
             <View
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 6,
-                height: 32,
-                paddingHorizontal: 10,
-                borderRadius: 16,
+                height: 34,
+                paddingHorizontal: 11,
+                borderRadius: 17,
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.16)',
-                backgroundColor: 'rgba(255,255,255,0.06)',
+                borderColor: 'rgba(255,255,255,0.14)',
+                backgroundColor: 'rgba(255,255,255,0.07)',
               }}
               accessibilityLabel={`Misafir modu, ${Math.max(0, MAX_GUEST_QUESTIONS - guestUsedCount)} soru hakkı kaldı`}
             >
               <View style={{
-                width: 6, height: 6, borderRadius: 3,
+                width: 7, height: 7, borderRadius: 3.5,
                 backgroundColor: guestLimitReached ? '#f87171' : '#4ade80',
               }} />
               <Text numberOfLines={1} style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>
-                {Math.max(0, MAX_GUEST_QUESTIONS - guestUsedCount)}/{MAX_GUEST_QUESTIONS}
-              </Text>
-              <Text numberOfLines={1} style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '500' }}>
-                hak
+                {Math.max(0, MAX_GUEST_QUESTIONS - guestUsedCount)}/{MAX_GUEST_QUESTIONS} Hak
               </Text>
             </View>
           ) : (
@@ -1889,24 +1885,22 @@ export default function ChatScreen() {
             </TouchableOpacity>
           )}
           right={isGuest ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <TouchableOpacity
                 onPress={() => void openClinicWhatsApp('Merhaba, MY FizioAI uygulaması üzerinden kliniğinizle iletişime geçmek istiyorum.')}
                 activeOpacity={0.8}
                 hitSlop={6}
                 style={{
-                  flexDirection: 'row',
+                  width: 34,
+                  height: 34,
+                  borderRadius: 17,
+                  backgroundColor: '#25D366',
                   alignItems: 'center',
-                  gap: 4,
-                  height: 32,
-                  paddingHorizontal: 10,
-                  borderRadius: 16,
-                  backgroundColor: '#16a34a',
+                  justifyContent: 'center',
                 }}
                 accessibilityLabel="WhatsApp hattına ulaş"
               >
-                <WhatsAppIcon size={14} color="#ffffff" />
-                <Text numberOfLines={1} style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '700' }}>WhatsApp</Text>
+                <WhatsAppIcon size={18} color="#ffffff" />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => router.push('/login')}
@@ -1915,16 +1909,16 @@ export default function ChatScreen() {
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 4,
-                  height: 32,
-                  paddingHorizontal: 10,
-                  borderRadius: 16,
+                  gap: 5,
+                  height: 34,
+                  paddingHorizontal: 12,
+                  borderRadius: 17,
                   backgroundColor: C.brand,
                 }}
                 accessibilityLabel="Giriş yap"
               >
-                <LogIn size={13} color="#ffffff" />
-                <Text numberOfLines={1} style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '700' }}>Giriş</Text>
+                <LogIn size={14} color="#ffffff" />
+                <Text numberOfLines={1} style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>Giriş</Text>
               </TouchableOpacity>
             </View>
           ) : (

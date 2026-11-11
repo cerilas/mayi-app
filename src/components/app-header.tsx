@@ -6,17 +6,16 @@ type AppHeaderProps = {
   left?: ReactNode;
   right?: ReactNode;
   center?: ReactNode;
-  /** Width of the left/right slots (kept equal so the center stays centred). */
-  sideWidth?: number;
 };
 
-export function AppHeader({ left, right, center, sideWidth = 48 }: AppHeaderProps) {
+export function AppHeader({ left, right, center }: AppHeaderProps) {
   return (
     <View
       style={{
         height: 60,
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         backgroundColor: '#07090f',
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,255,255,0.12)',
@@ -26,21 +25,32 @@ export function AppHeader({ left, right, center, sideWidth = 48 }: AppHeaderProp
         shadowRadius: 12,
         elevation: 6,
         zIndex: 5,
-        paddingHorizontal: 8,
+        paddingHorizontal: 12,
       }}
     >
+      {/* Absolute-centered logo so left/right buttons never shift the MY logo */}
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {center ? center : <BrandLogo size={38} />}
+      </View>
+
       {/* Left slot */}
-      <View style={{ minWidth: sideWidth, flexShrink: 0, alignItems: 'flex-start', justifyContent: 'center' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', zIndex: 2 }}>
         {left}
       </View>
 
-      {/* Center slot — fills remaining space */}
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 }}>
-        {center ? center : <BrandLogo size={36} />}
-      </View>
-
       {/* Right slot */}
-      <View style={{ minWidth: sideWidth, flexShrink: 0, alignItems: 'flex-end', justifyContent: 'center' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', zIndex: 2 }}>
         {right}
       </View>
     </View>
