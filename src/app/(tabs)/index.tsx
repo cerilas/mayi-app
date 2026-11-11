@@ -778,22 +778,47 @@ export default function ChatScreen() {
       void saveGuestQuota(nextUsed);
 
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 90_000);
+        // XMLHttpRequest works reliably on iOS/Android/web and lets us read the
+        // streamed text progressively without ReadableStream/TextDecoder.
+        const decodeB64Utf8 = (b64: string) => {
+          try {
+            const binary = atob(b64);
+            let encoded = '';
+            for (let i = 0; i < binary.length; i++) {
+              encoded += '%' + ('00' + binary.charCodeAt(i).toString(16)).slice(-2);
+            }
+            return decodeURIComponent(encoded);
+          } catch {
+            return 'Yapay zekâ yanıt oluşturamadı';
+          }
+        };
+        const cleanText = (raw: string) => raw
+          .replace(/__KEEPALIVE__/g, '')
+          .replace(/\n\n__(?:TITLE|ERROR)_B64__[A-Za-z0-9+/=]*/g, '');
 
-        const response = await fetch(`${API_URL}/mobile/guest-chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: historyPayload,
-            questionCount: nextUsed,
-          }),
-          signal: controller.signal,
+        const result = await new Promise<{ status: number; text: string }>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `${API_URL}/mobile/guest-chat`);
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.timeout = 120_000;
+          xhr.onprogress = () => {
+            if (xhr.status && xhr.status !== 200) return;
+            const partial = cleanText(xhr.responseText || '');
+            if (partial) {
+              setMessages(prev => prev.map(m => (
+                m.id === placeholderId ? { ...m, content: partial } : m
+              )));
+            }
+          };
+          xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText || '' });
+          xhr.onerror = () => reject(new Error('Ağ bağlantısı kurulamadı'));
+          xhr.ontimeout = () => reject(new Error('Yanıt zaman aşımına uğradı'));
+          xhr.send(JSON.stringify({ messages: historyPayload, questionCount: nextUsed }));
         });
-        clearTimeout(timeoutId);
 
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
+        if (result.status !== 200) {
+          let data: { error?: string; message?: string } = {};
+          try { data = JSON.parse(result.text); } catch {}
           if (data.error === 'guest_limit_exceeded') {
             setGuestUsedCount(MAX_GUEST_QUESTIONS);
             void saveGuestQuota(MAX_GUEST_QUESTIONS);
@@ -803,62 +828,25 @@ export default function ChatScreen() {
             } : m));
             return;
           }
-          throw new Error(data.message || data.error || `Sunucu hatası (${response.status})`);
+          throw new Error(data.message || data.error || `Sunucu hatası (${result.status})`);
         }
 
-        if (response.body && typeof response.body.getReader === 'function') {
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
-          let accumulated = '';
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            accumulated += decoder.decode(value, { stream: true });
-
-            const errorMatch = accumulated.match(/\n\n__ERROR_B64__([A-Za-z0-9+/=]+)/);
-            if (errorMatch) {
-              try {
-                const binary = atob(errorMatch[1]);
-                const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
-                throw new Error(new TextDecoder('utf-8').decode(bytes));
-              } catch (error) {
-                if (error instanceof Error) throw error;
-                throw new Error('Yapay zekâ yanıt oluşturamadı');
-              }
-            }
-
-            const displayText = accumulated
-              .replace(/__KEEPALIVE__/g, '')
-              .replace(/\n\n__(?:TITLE|ERROR)_B64__[A-Za-z0-9+/=]*/g, '');
-            setMessages(prev => prev.map(m => (
-              m.id === placeholderId ? { ...m, content: displayText } : m
-            )));
-          }
-        } else {
-          const accumulated = await response.text();
-          const errorMatch = accumulated.match(/\n\n__ERROR_B64__([A-Za-z0-9+/=]+)/);
-          if (errorMatch) {
-            try {
-              const binary = atob(errorMatch[1]);
-              const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
-              throw new Error(new TextDecoder('utf-8').decode(bytes));
-            } catch (error) {
-              if (error instanceof Error) throw error;
-              throw new Error('Yapay zekâ yanıt oluşturamadı');
-            }
-          }
-          const displayText = accumulated
-            .replace(/__KEEPALIVE__/g, '')
-            .replace(/\n\n__(?:TITLE|ERROR)_B64__[A-Za-z0-9+/=]*/g, '');
-          setMessages(prev => prev.map(m => (
-            m.id === placeholderId ? { ...m, content: displayText } : m
-          )));
+        const errorMatch = result.text.match(/\n\n__ERROR_B64__([A-Za-z0-9+/=]+)/);
+        if (errorMatch) {
+          throw new Error(decodeB64Utf8(errorMatch[1]));
         }
+
+        const finalText = cleanText(result.text).trim();
+        if (!finalText) throw new Error('Boş yanıt alındı');
+        setMessages(prev => prev.map(m => (
+          m.id === placeholderId ? { ...m, content: finalText } : m
+        )));
       } catch (error) {
         console.error('guest sendMessage error', error);
         setGuestUsedCount(guestUsedCount);
         void saveGuestQuota(guestUsedCount);
-        setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, content: 'Yanıt alınamadı. Lütfen tekrar deneyin.' } : m));
+        const reason = error instanceof Error && error.message ? `\n\n_(${error.message.slice(0, 160)})_` : '';
+        setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, content: `Yanıt alınamadı. Lütfen tekrar deneyin.${reason}` } : m));
       } finally {
         setSending(false);
       }
