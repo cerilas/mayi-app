@@ -6,9 +6,11 @@ type AppHeaderProps = {
   left?: ReactNode;
   right?: ReactNode;
   center?: ReactNode;
+  /** Width of the left/right slots (kept equal so the center stays centred). */
+  sideWidth?: number;
 };
 
-export function AppHeader({ left, right, center }: AppHeaderProps) {
+export function AppHeader({ left, right, center, sideWidth = 48 }: AppHeaderProps) {
   return (
     <View
       style={{
@@ -28,7 +30,7 @@ export function AppHeader({ left, right, center }: AppHeaderProps) {
       }}
     >
       {/* Left slot — fixed width so center can be truly centred */}
-      <View style={{ width: 48, alignItems: 'flex-start', justifyContent: 'center' }}>
+      <View style={{ width: sideWidth, alignItems: 'flex-start', justifyContent: 'center' }}>
         {left}
       </View>
 
@@ -38,7 +40,7 @@ export function AppHeader({ left, right, center }: AppHeaderProps) {
       </View>
 
       {/* Right slot — fixed width */}
-      <View style={{ width: 48, alignItems: 'flex-end', justifyContent: 'center' }}>
+      <View style={{ width: sideWidth, alignItems: 'flex-end', justifyContent: 'center' }}>
         {right}
       </View>
     </View>

@@ -1811,17 +1811,31 @@ export default function ChatScreen() {
       {/* Main content */}
       <SafeAreaView style={{ flex: 1, backgroundColor: '#07090f' }} edges={['top']}>
         <AppHeader
+          sideWidth={isGuest ? 96 : 48}
           left={isGuest ? (
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: 'rgba(255,255,255,0.1)',
-              paddingHorizontal: 10,
-              paddingVertical: 5,
-              borderRadius: 999,
-            }}>
-              <Text style={{ color: '#e2e8f0', fontSize: 11, fontWeight: '600' }}>
-                Misafir • {Math.max(0, MAX_GUEST_QUESTIONS - guestUsedCount)}/{MAX_GUEST_QUESTIONS} Hak
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                height: 32,
+                paddingHorizontal: 10,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.16)',
+                backgroundColor: 'rgba(255,255,255,0.06)',
+              }}
+              accessibilityLabel={`Misafir modu, ${Math.max(0, MAX_GUEST_QUESTIONS - guestUsedCount)} soru hakkı kaldı`}
+            >
+              <View style={{
+                width: 6, height: 6, borderRadius: 3,
+                backgroundColor: guestLimitReached ? '#f87171' : '#4ade80',
+              }} />
+              <Text numberOfLines={1} style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>
+                {Math.max(0, MAX_GUEST_QUESTIONS - guestUsedCount)}/{MAX_GUEST_QUESTIONS}
+              </Text>
+              <Text numberOfLines={1} style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '500' }}>
+                hak
               </Text>
             </View>
           ) : (
@@ -1832,19 +1846,21 @@ export default function ChatScreen() {
           right={isGuest ? (
             <TouchableOpacity
               onPress={() => router.push('/login')}
+              activeOpacity={0.8}
+              hitSlop={6}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 5,
+                height: 32,
+                paddingHorizontal: 12,
+                borderRadius: 16,
                 backgroundColor: C.brand,
-                paddingHorizontal: 11,
-                paddingVertical: 6,
-                borderRadius: 999,
               }}
               accessibilityLabel="Giriş yap"
             >
               <LogIn size={14} color="#ffffff" />
-              <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '600' }}>Giriş Yap</Text>
+              <Text numberOfLines={1} style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>Giriş</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={createNewConversation} style={{ padding: 8 }} accessibilityLabel="Yeni sohbet">
